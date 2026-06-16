@@ -4089,44 +4089,7 @@ function FieldEditor({
                         <p className="text-[10px] text-red-500 font-bold animate-pulse">⚠️ {logoUploadError}</p>
                       )}
 
-                      {/* FEATURE 6 — Typography section */}
-                      <div className="space-y-3 pt-3 border-t col-span-1 md:col-span-2" style={{ borderColor: 'var(--color-border)' }}>
-                        <p className="text-[10px] font-black uppercase tracking-wider animate-fade-in" style={{ color: 'var(--color-text-secondary)' }}>Typography — Google Fonts</p>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                          {([
-                            { label: 'All Elements', key: 'fontFamilyAll' },
-                            { label: 'Form Title', key: 'fontFamilyTitle' },
-                            { label: 'Body / Labels', key: 'fontFamilyBody' },
-                            { label: 'Buttons', key: 'fontFamilyButton' },
-                          ] as const).map(({ label, key }) => (
-                            <div key={key} className="space-y-1">
-                              <label className="text-[10px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
-                              <select
-                                value={(field as any)[key] || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  loadGoogleFont(val);
-                                  onChange(field.id, { [key]: val });
-                                  markDirtyAndSave();
-                                }}
-                                className="w-full border rounded-xl px-2.5 py-1.5 text-xs outline-none cursor-pointer"
-                                style={{
-                                  backgroundColor: 'var(--color-bg-secondary)',
-                                  color: 'var(--color-text-primary)',
-                                  borderColor: 'var(--color-border)',
-                                  fontFamily: (field as any)[key] || 'inherit'
-                                }}
-                              >
-                                <option value="">Default (system font)</option>
-                                {GOOGLE_FONTS.map(f => (
-                                  <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-                                ))}
-                              </select>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+
 
                     </div>
                   </div>
@@ -6367,7 +6330,7 @@ export default function ServiceBuilderPanel({
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const dragIndexRef = useRef<number | null>(null);
   const [activePaletteCategory, setActivePaletteCategory] = useState<'basic' | 'advanced' | 'layout' | 'design'>('basic');
-  const [activeTab, setActiveTab] = useState<'builder' | 'my_forms'>('builder');
+  const [activeTab, setActiveTab ] = useState<'builder' | 'my_forms' | 'fonts'>('builder');
   const [expandedEmbedId, setExpandedEmbedId] = useState<string | null>(null);
   const [expandedFormCardId, setExpandedFormCardId] = useState<string | null>(null);
 
@@ -7242,15 +7205,16 @@ export default function ServiceBuilderPanel({
       </div>
 
       {/* Sub-tabs bar */}
-      <div className="flex border-b shrink-0 px-4 sm:px-6"
+      <div className="flex border-b shrink-0 px-4 sm:px-6 overflow-x-auto scrollbar-none"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
         {([
           { id: 'builder',  label: '✏️ Builder' },
+          { id: 'fonts',    label: '🔤 Fonts' },
           { id: 'my_forms', label: '📋 My Forms' },
         ] as const).map(tab => (
           <button key={tab.id} type="button"
             onClick={() => setActiveTab(tab.id)}
-            className="px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer -mb-px font-sans"
+            className="px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer -mb-px font-sans whitespace-nowrap"
             style={{
               borderColor: activeTab === tab.id ? 'var(--color-accent)' : 'transparent',
               color: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
@@ -7260,7 +7224,7 @@ export default function ServiceBuilderPanel({
         ))}
       </div>
 
-      {activeTab === 'builder' ? (
+      {activeTab === 'builder' && (
         <>
           {/* Main 3-column body */}
           <div className="flex flex-1 overflow-hidden">
@@ -8003,7 +7967,121 @@ export default function ServiceBuilderPanel({
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {activeTab === 'fonts' && (() => {
+        const designBlock = fields.find(f => f.type === 'form_design_block');
+        return (
+          <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto p-4 sm:p-6 font-sans">
+            <div className="max-w-xl mx-auto w-full bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-6" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 border border-indigo-150/30">
+                  <span className="text-lg">🔤</span>
+                </div>
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--color-text-primary)' }}>Typography & Google Fonts</h2>
+                  <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>Changes apply to all form elements live.</p>
+                </div>
+              </div>
+
+              {!designBlock ? (
+                <div className="text-center py-10 px-4 border-2 border-dashed rounded-xl" style={{ borderColor: 'var(--color-border)' }}>
+                  <p className="text-2xl mb-1.5 font-sans">🎨</p>
+                  <p className="text-xs font-bold leading-relaxed font-sans" style={{ color: 'var(--color-text-secondary)' }}>
+                    Add a 'Form Design Block' field to your form first to unlock typography settings.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 gap-4">
+                    {([
+                      { label: 'All Elements', key: 'fontFamilyAll' },
+                      { label: 'Form Title', key: 'fontFamilyTitle' },
+                      { label: 'Body / Labels', key: 'fontFamilyBody' },
+                      { label: 'Buttons', key: 'fontFamilyButton' },
+                    ] as const).map(({ label, key }) => (
+                      <div key={key} className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[11px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+                          <span className="text-[10px] font-mono text-neutral-400 capitalize">{(designBlock as any)[key] || 'Default'}</span>
+                        </div>
+                        <select
+                          value={(designBlock as any)[key] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            loadGoogleFont(val);
+                            handleFieldChange(designBlock.id, { [key]: val });
+                            markDirtyAndSave();
+                          }}
+                          className="w-full border rounded-xl px-3 py-2 text-xs outline-none cursor-pointer transition focus:border-indigo-400"
+                          style={{
+                            backgroundColor: 'var(--color-bg-secondary)',
+                            color: 'var(--color-text-primary)',
+                            borderColor: 'var(--color-border)',
+                            fontFamily: (designBlock as any)[key] || 'inherit'
+                          }}
+                        >
+                          <option value="">Default (system font)</option>
+                          {GOOGLE_FONTS.map(f => (
+                            <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t pt-5 space-y-2" style={{ borderColor: 'var(--color-border)' }}>
+                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>Live Font Preview</p>
+                    <div 
+                      className="p-5 border rounded-xl space-y-3.5 bg-neutral-50/40 select-none" 
+                      style={{ 
+                        borderColor: 'var(--color-border)',
+                        fontFamily: designBlock.fontFamilyAll || 'inherit'
+                      }}
+                    >
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono">Form Title Preview</p>
+                        <h4 
+                          className="text-lg font-bold tracking-tight mt-0.5"
+                          style={{ fontFamily: designBlock.fontFamilyTitle || designBlock.fontFamilyAll || 'inherit', color: 'var(--color-text-primary)' }}
+                        >
+                          The Art of Digital Design & Layouts
+                        </h4>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono">Body / Labels Preview</p>
+                        <p 
+                          className="text-xs leading-relaxed mt-0.5"
+                          style={{ fontFamily: designBlock.fontFamilyBody || designBlock.fontFamilyAll || 'inherit', color: 'var(--color-text-secondary)' }}
+                        >
+                          This text displays how descriptions, labels, and standard inline helper messages will look when configured with chosen typography.
+                        </p>
+                      </div>
+
+                      <div className="pt-1.5">
+                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono mb-1.5">Buttons Preview</p>
+                        <button
+                          type="button"
+                          className="px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs"
+                          style={{ 
+                            fontFamily: designBlock.fontFamilyButton || designBlock.fontFamilyAll || 'inherit',
+                            background: 'var(--accent-gradient)'
+                          }}
+                        >
+                          Submit Application
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {activeTab === 'my_forms' && (
         <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto">
           {(() => {
             const formsWithSchema = programs.filter(p => p.formSchema && p.formSchema.length > 0);
