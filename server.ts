@@ -9659,9 +9659,26 @@ Do not invent any field types or property keys. The generated fields must be app
             fieldWrapper.appendChild(p);
           }
         } else if (field.type === 'divider') {
-          const hr = document.createElement('hr');
-          hr.className = 'border-slate-100 dark:border-slate-800 my-1';
+          const hr = document.createElement('div');
+          hr.className = 'my-1';
+          hr.style.height = (field.dividerThickness ?? 1) + 'px';
+          hr.style.width = '100%';
+          hr.style.backgroundColor = field.dividerColor || 'var(--color-border, #e5e7eb)';
+          hr.style.borderRadius = '9999px';
           fieldWrapper.appendChild(hr);
+        } else if (field.type === 'vertical_divider') {
+          const container = document.createElement('div');
+          container.className = 'flex justify-center items-stretch py-1';
+          container.style.minHeight = '40px';
+          const divider = document.createElement('div');
+          divider.style.width = (field.dividerThickness ?? 2) + 'px';
+          divider.style.minHeight = '100%';
+          divider.style.height = (field.dividerHeight ?? 40) + 'px';
+          divider.style.backgroundColor = field.dividerColor || 'var(--color-border, #e5e7eb)';
+          divider.style.borderRadius = '9999px';
+          divider.style.alignSelf = 'stretch';
+          container.appendChild(divider);
+          fieldWrapper.appendChild(container);
         } else if (field.type === 'rich_text') {
           const div = document.createElement('div');
           div.className = 'text-xs text-slate-600 dark:text-slate-400 leading-relaxed';

@@ -6710,7 +6710,7 @@ function MainApp() {
                   <div className="space-y-3">
                     {templatePreviewModal.formSchema.map((field) => (
                       <div key={field.id} className="space-y-1">
-                        {field.type !== 'divider' && field.type !== 'page_break' && (
+                        {field.type !== 'divider' && field.type !== 'vertical_divider' && field.type !== 'page_break' && (
                           <label className="text-[10px] font-bold block" style={{ color: 'var(--color-text-primary)' }}>
                             {field.label}
                             {field.required && <span className="text-red-400 ml-0.5">*</span>}
@@ -6730,7 +6730,30 @@ function MainApp() {
                           </div>
                         )}
                         {field.type === 'divider' && (
-                          <hr style={{ borderColor: 'var(--color-border)' }} />
+                          <div className="py-1">
+                            <div
+                              style={{
+                                height: `${field.dividerThickness ?? 1}px`,
+                                width: '100%',
+                                backgroundColor: field.dividerColor || 'var(--color-border)',
+                                borderRadius: '9999px',
+                              }}
+                            />
+                          </div>
+                        )}
+                        {field.type === 'vertical_divider' && (
+                          <div className="flex justify-center items-stretch py-1 mx-auto" style={{ minHeight: '30px' }}>
+                            <div
+                              style={{
+                                width: `${field.dividerThickness ?? 2}px`,
+                                minHeight: '100%',
+                                height: field.dividerHeight ?? 40,
+                                backgroundColor: field.dividerColor || 'var(--color-border)',
+                                borderRadius: '9999px',
+                                alignSelf: 'stretch',
+                              }}
+                            />
+                          </div>
                         )}
                         {field.type === 'section_header' && (
                           <p className="text-xs font-black" style={{ color: 'var(--color-text-primary)' }}>{field.label}</p>

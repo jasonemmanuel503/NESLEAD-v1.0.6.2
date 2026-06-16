@@ -3286,6 +3286,115 @@ function FieldEditor({
                 </div>
               )}
 
+              {field.type === 'divider' && (
+                <div className="space-y-4 font-sans border-t pt-3 mt-2" style={{ borderColor: 'var(--color-border)' }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400" style={{ color: 'var(--color-text-secondary)' }}>Horizontal Divider Settings</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] w-24 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Line Color:</span>
+                    <input
+                      type="color"
+                      value={field.dividerColor || '#e5e7eb'}
+                      onChange={(e) => {
+                        onChange(field.id, { dividerColor: e.target.value });
+                        markDirtyAndSave();
+                      }}
+                      className="w-8 h-7 rounded border cursor-pointer p-0.5 bg-transparent"
+                      style={{ borderColor: 'var(--color-border)' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(field.id, { dividerColor: undefined });
+                        markDirtyAndSave();
+                      }}
+                      className="text-[9px] text-neutral-400 hover:text-neutral-600 underline cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] w-24 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Thickness: {field.dividerThickness ?? 1}px</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={field.dividerThickness ?? 1}
+                      onChange={(e) => {
+                        onChange(field.id, { dividerThickness: Number(e.target.value) });
+                      }}
+                      onMouseUp={() => markDirtyAndSave()}
+                      onTouchEnd={() => markDirtyAndSave()}
+                      className="flex-1 h-1 accent-indigo-500 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {field.type === 'vertical_divider' && (
+                <div className="space-y-4 font-sans border-t pt-3 mt-2" style={{ borderColor: 'var(--color-border)' }}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400" style={{ color: 'var(--color-text-secondary)' }}>Vertical Divider Settings</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] w-24 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Line Color:</span>
+                    <input
+                      type="color"
+                      value={field.dividerColor || '#e5e7eb'}
+                      onChange={(e) => {
+                        onChange(field.id, { dividerColor: e.target.value });
+                        markDirtyAndSave();
+                      }}
+                      className="w-8 h-7 rounded border cursor-pointer p-0.5 bg-transparent"
+                      style={{ borderColor: 'var(--color-border)' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(field.id, { dividerColor: undefined });
+                        markDirtyAndSave();
+                      }}
+                      className="text-[9px] text-neutral-400 hover:text-neutral-600 underline cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] w-24 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Thickness: {field.dividerThickness ?? 2}px</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={field.dividerThickness ?? 2}
+                      onChange={(e) => {
+                        onChange(field.id, { dividerThickness: Number(e.target.value) });
+                      }}
+                      onMouseUp={() => markDirtyAndSave()}
+                      onTouchEnd={() => markDirtyAndSave()}
+                      className="flex-1 h-1 accent-indigo-500 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] w-24 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Height: {field.dividerHeight ?? 40}px</span>
+                    <input
+                      type="range"
+                      min={20}
+                      max={400}
+                      step={1}
+                      value={field.dividerHeight ?? 40}
+                      onChange={(e) => {
+                        onChange(field.id, { dividerHeight: Number(e.target.value) });
+                      }}
+                      onMouseUp={() => markDirtyAndSave()}
+                      onTouchEnd={() => markDirtyAndSave()}
+                      className="flex-1 h-1 accent-indigo-500 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+
               {['short_text', 'long_text'].includes(field.type) && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Max Characters</label>
@@ -4097,7 +4206,7 @@ function FieldEditor({
               )}
 
               {/* Section header subtitle */}
-              {!['divider', 'page_break', 'form_design_block'].includes(field.type) && (
+              {!['divider', 'vertical_divider', 'page_break', 'form_design_block'].includes(field.type) && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
                     {field.type === 'section_header' ? 'Subtitle (shown below heading)' : 'Help Text (shown below field)'}
@@ -4537,7 +4646,30 @@ function FormPreview({
         {/* Layout: divider */}
         {field.type === 'divider' && (
           <div className="py-1">
-            <div className="h-px w-full" style={{ background: `linear-gradient(to right, transparent, var(--color-border), transparent)` }} />
+            <div
+              style={{
+                height: `${field.dividerThickness ?? 1}px`,
+                width: '100%',
+                backgroundColor: field.dividerColor || 'var(--color-border)',
+                borderRadius: '9999px',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Layout: vertical divider */}
+        {field.type === 'vertical_divider' && (
+          <div className="flex justify-center items-stretch py-1 mx-auto" style={{ minHeight: '40px' }}>
+            <div
+              style={{
+                width: `${field.dividerThickness ?? 2}px`,
+                minHeight: '100%',
+                height: field.dividerHeight ?? 40,
+                backgroundColor: field.dividerColor || 'var(--color-border)',
+                borderRadius: '9999px',
+                alignSelf: 'stretch',
+              }}
+            />
           </div>
         )}
 

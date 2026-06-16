@@ -272,6 +272,11 @@ export interface FormField {
   bgGlassColorStops?: Array<{ color: string; position: number; opacity: number }>; // up to 6 stops
   bgGlassAngle?: number;         // 0–360 for gradient direction
 
+  // Divider lines controls (Horizontal and Vertical)
+  dividerColor?: string;      // hex color, default undefined (uses var(--color-border))
+  dividerThickness?: number;  // px, default 1, range 1–20
+  dividerHeight?: number;     // px, for vertical divider explicit height control
+
   // time_picker
   timeFormat?: '12h' | '24h';
   timeStep?: number; // minutes, e.g. 15, 30, 60
