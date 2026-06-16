@@ -6771,6 +6771,10 @@ export default function ServiceBuilderPanel({
     e.dataTransfer.setData('palette-type', item.type);
     e.dataTransfer.setData('palette-default-label', item.defaultLabel);
     e.dataTransfer.effectAllowed = 'copy';
+    e.target.addEventListener('dragend', () => {
+      setDragOverIndex(null);
+      setIsDraggingOverCanvas(false);
+    }, { once: true });
   };
 
   const handleCanvasDragOver = (e: React.DragEvent<any>) => {
@@ -6783,12 +6787,14 @@ export default function ServiceBuilderPanel({
     // Only clear if leaving the canvas container itself
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDraggingOverCanvas(false);
+      setDragOverIndex(null);
     }
   };
 
   const handleCanvasDrop = (e: React.DragEvent<any>) => {
     e.preventDefault();
     setIsDraggingOverCanvas(false);
+    setDragOverIndex(null);
     const type = e.dataTransfer.getData('palette-type') as FormFieldType;
     const defaultLabel = e.dataTransfer.getData('palette-default-label');
     if (type) {
@@ -7332,6 +7338,7 @@ export default function ServiceBuilderPanel({
                 onDragOver={handleCanvasDragOver}
                 onDragLeave={handleCanvasDragLeave}
                 onDrop={handleCanvasDrop}
+                onDragEnd={() => { setDragOverIndex(null); setIsDraggingOverCanvas(false); }}
                 style={{
                   outline: isDraggingOverCanvas ? '2.5px dashed var(--color-accent)' : '2.5px dashed transparent',
                   outlineOffset: '-4px',
