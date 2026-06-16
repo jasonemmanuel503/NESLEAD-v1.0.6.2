@@ -6605,29 +6605,7 @@ export default function ServiceBuilderPanel({
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end ml-auto">
           <AnimatePresence><AutoSaveIndicator status={saveStatus} /></AnimatePresence>
-          {/* Device Preview Toggle Controls */}
-          <div className="hidden md:flex items-center gap-0.5 p-1 rounded-xl border shrink-0" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
-            {(['desktop', 'tablet', 'mobile'] as const).map((device) => {
-              const Icon = device === 'mobile' ? Smartphone : device === 'tablet' ? Tablet : Monitor;
-              const isActive = previewDevice === device;
-              return (
-                <button
-                  key={device}
-                  type="button"
-                  onClick={() => setPreviewDevice(device)}
-                  className="p-1 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[10px] font-bold font-sans"
-                  style={{
-                    backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
-                    color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
-                  }}
-                  title={`Preview in ${device} width`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span className="capitalize hidden lg:inline">{device}</span>
-                </button>
-              );
-            })}
-          </div>
+
           <button
             type="button"
             onClick={() => {
@@ -7264,30 +7242,8 @@ export default function ServiceBuilderPanel({
 
 
 
-                {/* Device-constrained interactive preview frame */}
-                <div
-                  className={`w-full transition-all duration-300 font-sans mx-auto ${
-                    previewDevice === 'mobile'
-                      ? 'max-w-[375px] border-[12px] border-neutral-800 dark:border-neutral-700 rounded-[2.2rem] bg-neutral-50 dark:bg-neutral-900 shadow-2xl overflow-y-auto h-[680px] max-h-[75vh] relative p-4 flex flex-col'
-                      : previewDevice === 'tablet'
-                      ? 'max-w-[768px] border-[8px] border-neutral-600 dark:border-neutral-500 rounded-[1.8rem] bg-neutral-50 dark:bg-neutral-900 shadow-xl overflow-y-auto h-[880px] max-h-[85vh] relative p-6 flex flex-col'
-                      : 'max-w-full'
-                  }`}
-                >
-                  {/* Subtle mobile screen status/header bars */}
-                  {previewDevice === 'mobile' && (
-                    <div className="w-full flex items-center justify-between text-[10px] text-neutral-400 font-medium px-2 pb-2 border-b border-neutral-200 dark:border-neutral-850 mb-3 shrink-0 select-none">
-                      <span>9:41 AM</span>
-                      <div className="w-12 h-3.5 bg-neutral-800 dark:bg-neutral-700 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-neutral-950 dark:bg-neutral-900 mr-1.5 animate-pulse" />
-                        <div className="w-5 h-1 bg-neutral-600 rounded-full" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>5G</span>
-                        <div className="w-4 h-2.5 border border-neutral-400 rounded-xs p-0.5 flex items-center justify-start"><div className="w-full h-full bg-neutral-400 rounded-xs" /></div>
-                      </div>
-                    </div>
-                  )}
+                {/* Clean full-width editor interface */}
+                <div className="w-full transition-all duration-300 font-sans mx-auto max-w-full">
 
                   {fields.length === 0 ? (
                     <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4"
@@ -7670,7 +7626,7 @@ export default function ServiceBuilderPanel({
           >
             {/* Header bar */}
             <div
-              className="flex items-center justify-between px-6 py-3 border-b shrink-0"
+              className="flex items-center justify-between px-6 py-3 border-b shrink-0 gap-4"
               style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
             >
               <div>
@@ -7681,6 +7637,31 @@ export default function ServiceBuilderPanel({
                   This is exactly how the form appears to your end users
                 </p>
               </div>
+
+              {/* Centered Device Toggles */}
+              <div className="flex items-center gap-0.5 p-1 rounded-xl border shrink-0 bg-neutral-100 dark:bg-neutral-800" style={{ borderColor: 'var(--color-border)' }}>
+                {(['desktop', 'tablet', 'mobile'] as const).map((device) => {
+                  const Icon = device === 'mobile' ? Smartphone : device === 'tablet' ? Tablet : Monitor;
+                  const isActive = previewDevice === device;
+                  return (
+                    <button
+                      key={device}
+                      type="button"
+                      onClick={() => setPreviewDevice(device)}
+                      className="p-1 px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold font-sans"
+                      style={{
+                        backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
+                        color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
+                      }}
+                      title={`Preview in ${device} width`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="capitalize">{device}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -7694,12 +7675,35 @@ export default function ServiceBuilderPanel({
               </div>
             </div>
 
-            {/* Scrollable form content — centered, max-width container like a real embed */}
+            {/* Scrollable form content — centered, dynamic device wrapper */}
             <div
-              className="flex-1 overflow-y-auto flex justify-center py-10 px-4"
+              className="flex-1 overflow-y-auto flex justify-center items-start py-10 px-4"
               style={{ backgroundColor: 'var(--color-bg-secondary)' }}
             >
-              <div className="w-full max-w-xl">
+              <div
+                className={`w-full transition-all duration-300 font-sans ${
+                  previewDevice === 'mobile'
+                    ? 'max-w-[375px] border-[12px] border-neutral-800 dark:border-neutral-700 rounded-[2.2rem] bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto h-[680px] max-h-[75vh] relative p-4 flex flex-col'
+                    : previewDevice === 'tablet'
+                    ? 'max-w-[768px] border-[8px] border-neutral-600 dark:border-neutral-500 rounded-[1.8rem] bg-white dark:bg-neutral-900 shadow-xl overflow-y-auto h-[880px] max-h-[85vh] relative p-6 flex flex-col'
+                    : 'max-w-xl bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-8 border'
+                }`}
+                style={previewDevice === 'desktop' ? { borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' } : {}}
+              >
+                {/* Subtle mobile screen status/header bars */}
+                {previewDevice === 'mobile' && (
+                  <div className="w-full flex items-center justify-between text-[10px] text-neutral-400 font-medium px-2 pb-2 border-b border-neutral-200 dark:border-neutral-800 mb-3 shrink-0 select-none">
+                    <span>9:41 AM</span>
+                    <div className="w-12 h-3.5 bg-neutral-800 dark:bg-neutral-700 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-neutral-950 dark:bg-neutral-900 mr-1.5 animate-pulse" />
+                      <div className="w-5 h-1 bg-neutral-600 rounded-full" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>5G</span>
+                      <div className="w-4 h-2.5 border border-neutral-400 rounded-xs p-0.5 flex items-center justify-start"><div className="w-full h-full bg-neutral-400 rounded-xs" /></div>
+                    </div>
+                  </div>
+                )}
                 <FormPreview
                   fields={fields}
                   serviceName={selectedProgramId ? name : formName}
