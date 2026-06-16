@@ -3862,9 +3862,18 @@ function FieldEditor({
                             <button
                               type="button"
                               onClick={() => onDesignChange?.({ bgGlassEnabled: !bgGlassEnabled })}
-                              className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${bgGlassEnabled ? 'bg-indigo-500' : 'bg-neutral-300'}`}
+                              className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                              style={{ backgroundColor: bgGlassEnabled ? 'var(--color-accent)' : '#d1d5db' }}
+                              role="switch"
+                              aria-checked={bgGlassEnabled}
                             >
-                              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${bgGlassEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                              <span
+                                className="pointer-events-none inline-block h-4 w-4 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out"
+                                style={{
+                                  transform: bgGlassEnabled ? 'translateX(16px)' : 'translateX(0px)',
+                                  backgroundColor: bgGlassEnabled ? '#ffffff' : 'rgba(99, 102, 241, 0.35)',  // reduced-opacity indigo when OFF
+                                }}
+                              />
                             </button>
                           </div>
 
