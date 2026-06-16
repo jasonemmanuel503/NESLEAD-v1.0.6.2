@@ -179,6 +179,9 @@ export interface FormField {
   ctaTransitionDuration?: number; // ms, e.g. 300
   ctaTarget?: '_blank' | '_new' | '_self'; // link behavior
   columnFields?: FormField[][];
+  columnHeights?: number[];        // explicit px height per column slot, undefined = auto
+  columnWidths?: string[];         // CSS width per column, e.g. '50%', '200px', undefined = equal
+  columnAlignments?: ('start' | 'center' | 'end' | 'stretch')[];  // align-items per column
   optionLayout?: 'vertical' | 'horizontal';
   titleFontSize?: number;
   titleFontWeight?: string;

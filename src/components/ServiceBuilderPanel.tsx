@@ -745,6 +745,9 @@ function FieldEditor({
   const hasOptions = ['dropdown', 'multi_checkbox', 'radio'].includes(field.type);
   const hasPlaceholder = ['short_text', 'long_text', 'phone', 'email', 'number', 'password'].includes(field.type);
   const hasStyling = ['short_text', 'long_text', 'phone', 'email', 'number', 'password', 'dropdown', 'date', 'time_picker', 'date_range', 'address_autocomplete', 'color_picker', 'signature_pad', 'otp_input', 'country_selector', 'repeating_section', 'accordion_section', 'tab_container'].includes(field.type);
+  
+  const isColumnRow = field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row';
+  const columnCount = field.type === 'three_column_row' ? 3 : field.type === 'two_column_row' ? 2 : field.type === 'single_column_row' ? 1 : 0;
 
   return (
     <motion.div
@@ -852,8 +855,17 @@ function FieldEditor({
             return (
               <div
                 key={colIdx}
-                className="min-h-[60px] h-auto border-2 border-dashed rounded-xl p-2.5 space-y-2 transition bg-white"
-                style={{ borderColor: 'var(--color-border)' }}
+                className="border-2 border-dashed rounded-xl p-2.5 space-y-2 transition bg-white"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
+                  minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
+                  width: field.columnWidths?.[colIdx] || undefined,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
+                  overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
+                }}
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.style.borderColor = 'var(--color-accent)'; }}
                 onDragLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
                 onDrop={(e) => {
@@ -1279,6 +1291,144 @@ function FieldEditor({
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 pt-1 space-y-3 border-t text-xs" style={{ borderColor: 'var(--color-border)' }}>
+              {isColumnRow && (
+                <div className="space-y-4 pt-2 border-t mt-2" style={{ borderColor: 'var(--color-border)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Column Layout Settings</p>
+                  
+                  {Array.from({ length: columnCount }).map((_, colIdx) => {
+                    const colLetter = String.fromCharCode(65 + colIdx); // A, B, C
+                    const colHeight = field.columnHeights?.[colIdx];
+                    const colWidth = field.columnWidths?.[colIdx] || '';
+                    const colAlign = field.columnAlignments?.[colIdx] || 'stretch';
+
+                    return (
+                      <div key={colIdx} className="p-2.5 border rounded-lg space-y-3 bg-neutral-50/40 animate-fade-in" style={{ borderColor: 'var(--color-border)' }}>
+                        <p className="font-bold text-[10px]" style={{ color: 'var(--color-text-primary)' }}>
+                          Column {colLetter} Settings
+                        </p>
+
+                        {/* Height control */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Height (px):</span>
+                            <span className="text-[10px] font-bold text-neutral-600">
+                              {colHeight != null ? `${colHeight}px` : 'Auto'}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              min={10}
+                              max={2000}
+                              placeholder="Auto / None"
+                              value={colHeight ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                const currentHeights = [...(field.columnHeights || [])];
+                                while (currentHeights.length < columnCount) currentHeights.push(undefined as any);
+                                currentHeights[colIdx] = val as any;
+                                onChange(field.id, { columnHeights: currentHeights });
+                              }}
+                              onBlur={() => markDirtyAndSave()}
+                              className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
+                              style={inputStyle}
+                            />
+                            {colHeight != null && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentHeights = [...(field.columnHeights || [])];
+                                  while (currentHeights.length < columnCount) currentHeights.push(undefined as any);
+                                  currentHeights[colIdx] = undefined as any;
+                                  onChange(field.id, { columnHeights: currentHeights });
+                                  markDirtyAndSave();
+                                }}
+                                className="px-2 py-1 border rounded-lg hover:border-red-400 hover:text-red-500 text-[10px] cursor-pointer"
+                                style={{ borderColor: 'var(--color-border)' }}
+                              >
+                                Reset to Auto
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Alignment control */}
+                        <div className="space-y-1.5">
+                          <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Vertical Content Alignment:</span>
+                          <div className="grid grid-cols-4 gap-1">
+                            {(['start', 'center', 'end', 'stretch'] as const).map((align) => {
+                              const isActive = colAlign === align;
+                              return (
+                                <button
+                                  key={align}
+                                  type="button"
+                                  onClick={() => {
+                                    const currentAlignments = [...(field.columnAlignments || [])];
+                                    while (currentAlignments.length < columnCount) currentAlignments.push('stretch');
+                                    currentAlignments[colIdx] = align;
+                                    onChange(field.id, { columnAlignments: currentAlignments });
+                                    markDirtyAndSave();
+                                  }}
+                                  className="py-1.5 border rounded-lg text-[10px] font-medium transition cursor-pointer capitalize text-center"
+                                  style={isActive
+                                    ? { background: 'var(--accent-gradient)', color: '#fff', borderColor: 'transparent' }
+                                    : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }}
+                                >
+                                  {align}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Width control */}
+                        <div className="space-y-1.5 font-sans">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Width (e.g. 50%, 200px):</span>
+                            <span className="text-[10px] font-bold text-neutral-600 font-sans">
+                              {colWidth || 'Equal'}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Equal width"
+                              value={colWidth}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const currentWidths = [...(field.columnWidths || [])];
+                                while (currentWidths.length < columnCount) currentWidths.push('');
+                                currentWidths[colIdx] = val || '';
+                                onChange(field.id, { columnWidths: currentWidths });
+                              }}
+                              onBlur={() => markDirtyAndSave()}
+                              className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
+                              style={inputStyle}
+                            />
+                            {colWidth !== '' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentWidths = [...(field.columnWidths || [])];
+                                  while (currentWidths.length < columnCount) currentWidths.push('');
+                                  currentWidths[colIdx] = '';
+                                  onChange(field.id, { columnWidths: currentWidths });
+                                  markDirtyAndSave();
+                                }}
+                                className="px-2 py-1 border rounded-lg hover:border-red-400 hover:text-red-500 text-[10px] cursor-pointer"
+                                style={{ borderColor: 'var(--color-border)' }}
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {hasPlaceholder && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Placeholder Text</label>
@@ -4444,7 +4594,19 @@ function FormPreview({
             field.type === 'single_column_row' ? 'grid-cols-1' : field.type === 'two_column_row' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'
           }`}>
             {(field.columnFields || (field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []])).map((colFields, colIdx) => (
-              <div key={colIdx} className="space-y-3">
+              <div
+                key={colIdx}
+                className="space-y-3"
+                style={{
+                  height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
+                  minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
+                  width: field.columnWidths?.[colIdx] || undefined,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
+                  overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
+                }}
+              >
                 {colFields.map((cf) => renderField(cf))}
               </div>
             ))}
