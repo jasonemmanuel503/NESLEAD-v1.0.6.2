@@ -1928,6 +1928,12 @@ function MainApp() {
     formBgBlendMode?: string;
     formBgSize?: 'cover' | 'contain' | 'auto';
     formBgOpacity?: number;
+    canvas?: {
+      width: number;
+      height: number;
+      unit: 'px' | 'cm' | 'in';
+      preset: string;
+    };
   }) => {
     try {
       const isEdit = !!data.programId;
@@ -1950,7 +1956,8 @@ function MainApp() {
           formLogoPosition: data.formLogoPosition,
           formBgBlendMode: data.formBgBlendMode,
           formBgSize: data.formBgSize,
-          formBgOpacity: data.formBgOpacity
+          formBgOpacity: data.formBgOpacity,
+          canvas: data.canvas
         })
       });
       if (res.ok) {

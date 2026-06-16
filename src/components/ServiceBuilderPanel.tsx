@@ -16,6 +16,18 @@ import type { FormField, FormFieldType, Program, FormTemplate } from '../types';
 import confetti from 'canvas-confetti';
 import { WORLD_COUNTRIES } from '../lib/industryPersona';
 
+const FORM_CANVAS_PRESETS = [
+  { id: 'desktop_form',       label: 'Desktop Form',       width: 1200, height: 1600, unit: 'px' as const },
+  { id: 'a4_portrait',        label: 'A4 Portrait',        width: 794,  height: 1123, unit: 'px' as const },
+  { id: 'a4_landscape',       label: 'A4 Landscape',       width: 1123, height: 794,  unit: 'px' as const },
+  { id: 'mobile_portrait',    label: 'Mobile Portrait',    width: 390,  height: 844,  unit: 'px' as const },
+  { id: 'tablet_portrait',    label: 'Tablet Portrait',    width: 768,  height: 1024, unit: 'px' as const },
+  { id: 'instagram_story',    label: 'Instagram Story',    width: 1080, height: 1920, unit: 'px' as const },
+  { id: 'reel_tiktok',        label: 'Reel / TikTok',      width: 1080, height: 1920, unit: 'px' as const },
+  { id: 'youtube_thumbnail',  label: 'YouTube Thumbnail',  width: 1280, height: 720,  unit: 'px' as const },
+  { id: 'custom',             label: 'Custom Size',        width: 800,  height: 1000, unit: 'px' as const },
+];
+
 // ─── EmbedCodeHelper ──────────────────────────────────────────────────────────
 function EmbedCodeBlock({
   programId, programName, fieldCount, isPublished
@@ -6227,6 +6239,12 @@ interface ServiceBuilderPanelProps {
     formBgBlendMode?: string;
     formBgSize?: 'cover' | 'contain' | 'auto';
     formBgOpacity?: number;
+    canvas?: {
+      width: number;
+      height: number;
+      unit: 'px' | 'cm' | 'in';
+      preset: string;
+    };
   }) => Promise<any>;
   vertical?: string | null;
   initialProgramId?: string | null;
@@ -6435,6 +6453,7 @@ export default function ServiceBuilderPanel({
       setBgGlassBorderWidth(1);
       setBgGlassColorStops([{ color: '#6366f1', position: 0, opacity: 30 }, { color: '#8b5cf6', position: 100, opacity: 20 }]);
       setBgGlassAngle(135);
+      setFormCanvas(undefined);
     } else {
       setFormName(p?.name || '');
       setFormBg(p?.formBg || '');
@@ -6443,6 +6462,7 @@ export default function ServiceBuilderPanel({
       setBgBlendMode(p?.formBgBlendMode || 'normal');
       setBgSize(p?.formBgSize || 'cover');
       setBgOpacity(p?.formBgOpacity !== undefined ? p.formBgOpacity : 100);
+      setFormCanvas(p?.canvas);
 
       const designBlock = p?.formSchema?.find((f: any) => f.type === 'form_design_block');
       setBgSolidOpacity(designBlock?.bgSolidOpacity !== undefined ? designBlock.bgSolidOpacity : 100);
@@ -6498,6 +6518,15 @@ export default function ServiceBuilderPanel({
   const [copiedOptionA, setCopiedOptionA] = useState(false);
   const [copiedOptionB, setCopiedOptionB] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showCanvasSetupModal, setShowCanvasSetupModal] = useState(false);
+  const [pendingFormName, setPendingFormName] = useState('');
+  const [pendingCanvas, setPendingCanvas] = useState<NonNullable<Program['canvas']>>({
+    preset: 'desktop_form',
+    width: 1200,
+    height: 1600,
+    unit: 'px',
+  });
+  const [formCanvas, setFormCanvas] = useState<Program['canvas'] | undefined>(() => selectedProgram?.canvas);
   const [saveStatus, setSaveStatus] = useState<AutoSaveStatus>('idle');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
@@ -6633,7 +6662,8 @@ export default function ServiceBuilderPanel({
         formLogoPosition,
         formBgBlendMode: bgBlendMode,
         formBgSize: bgSize,
-        formBgOpacity: bgOpacity
+        formBgOpacity: bgOpacity,
+        canvas: formCanvas
       });
 
       if (savedItem && savedItem.id) {
@@ -6884,6 +6914,7 @@ export default function ServiceBuilderPanel({
           formBg,
           formLogoUrl,
           formLogoPosition,
+          canvas: formCanvas
         });
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -6892,7 +6923,7 @@ export default function ServiceBuilderPanel({
         setTimeout(() => setSaveStatus('idle'), 4000);
       }
     }, 1200);
-  }, [name, formName, dept, duration, fees, badge, desc, fields, formBg, formLogoUrl, formLogoPosition, selectedProgramId, isPublished, onSave]);
+  }, [name, formName, dept, duration, fees, badge, desc, fields, formBg, formLogoUrl, formLogoPosition, selectedProgramId, isPublished, formCanvas, onSave]);
 
   const isFirstRender = useRef(true);
   const isDirtyRef = useRef(false);
@@ -7124,7 +7155,8 @@ export default function ServiceBuilderPanel({
         formLogoPosition,
         formBgBlendMode: bgBlendMode,
         formBgSize: bgSize,
-        formBgOpacity: bgOpacity
+        formBgOpacity: bgOpacity,
+        canvas: formCanvas
       });
       setSaveStatus('saved');
       if (publish) {
@@ -7262,27 +7294,40 @@ export default function ServiceBuilderPanel({
             </select>
           )}
           {!selectedProgramId && (
-            <div className="flex flex-col">
-              <div className="relative font-sans">
-                <input
-                  type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  onBlur={() => markDirtyAndSave()}
-                  placeholder="Name this form..."
-                  className="border rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-bold outline-none"
-                  style={inputStyle}
-                />
-                {formName && (
-                  <button type="button" onClick={() => { setFormName(''); markDirtyAndSave(); }}
-                    className="absolute right-2 top-2.5 text-neutral-400 hover:text-neutral-600 transition">
-                    <X className="w-3" />
-                  </button>
-                )}
-              </div>
-              <p className="text-[9px] font-medium mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                🔒 Internal label only — not shown to users in preview
-              </p>
+            <div className="flex items-center gap-2">
+              {formName ? (
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <span className="text-xs font-bold font-sans text-neutral-800 dark:text-neutral-200">{formName}</span>
+                    <button type="button" onClick={() => { setFormName(''); setFormCanvas(undefined); }}
+                      className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition"
+                      title="Clear and start over">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <p className="text-[9px] font-medium mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    🔒 Internal label only — not shown to users in preview
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingFormName('');
+                    setPendingCanvas({
+                      preset: 'desktop_form',
+                      width: 1200,
+                      height: 1600,
+                      unit: 'px',
+                    });
+                    setShowCanvasSetupModal(true);
+                  }}
+                  className="px-3 py-1.5 h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                  style={{ background: 'var(--accent-gradient)' }}
+                >
+                  <Plus className="w-3.5 h-3.5" /> New Form
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -7940,8 +7985,19 @@ export default function ServiceBuilderPanel({
 
 
 
-                {/* Clean full-width editor interface */}
-                <div className="w-full transition-all duration-300 font-sans mx-auto max-w-full">
+                {/* Clean full-width editor interface with dynamic canvas sizing constraints */}
+                {/* COMMENT: We utilize width and minHeight as intent dimensions for precision, while max-width of 100% ensures proper responsiveness. */}
+                <div 
+                  className="w-full transition-all duration-300 font-sans mx-auto max-w-full rounded-2xl p-6 border"
+                  style={{
+                    width: formCanvas ? `${formCanvas.width}${formCanvas.unit}` : '100%',
+                    minHeight: formCanvas ? `${formCanvas.height}${formCanvas.unit}` : '500px',
+                    maxWidth: '100%',
+                    margin: '0 auto',
+                    borderColor: 'var(--color-border)',
+                    backgroundColor: 'var(--color-bg-card)',
+                  }}
+                >
 
                   {fields.length === 0 ? (
                     <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4"
@@ -8947,6 +9003,190 @@ export default function ServiceBuilderPanel({
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
                 >
                   Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Form Canvas Size Setup */}
+      <AnimatePresence>
+        {showCanvasSetupModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCanvasSetupModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            />
+            
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="relative rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl overflow-hidden font-sans border max-h-[90vh] flex flex-col"
+              style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
+            >
+              <div className="flex items-center justify-between border-b pb-3 mb-4" style={{ borderColor: 'var(--color-border)' }}>
+                <div>
+                  <h2 className="text-base font-black" style={{ color: 'var(--color-text-primary)' }}>Create New Form Canvas</h2>
+                  <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>Set a custom title and structural sizing layout for your form canvas.</p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCanvasSetupModal(false)}
+                  className="p-1.5 hover:bg-neutral-100 rounded-lg transition text-neutral-400"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-grow overflow-y-auto pr-1 space-y-4">
+                {/* Form Name Input */}
+                <div className="text-left font-sans">
+                  <label className="text-[11px] font-bold block mb-1 text-neutral-700 dark:text-neutral-300">
+                    Form Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pendingFormName}
+                    onChange={(e) => setPendingFormName(e.target.value)}
+                    placeholder="e.g. Autumn Intake Lead Capture"
+                    className="w-full border rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none transition focus:ring-2"
+                    style={{ ...inputStyle, '--tw-ring-color': 'var(--color-accent)' } as any}
+                  />
+                  <p className="text-[9px] text-neutral-400 mt-1">This name is used internally for organization in your workspace.</p>
+                </div>
+
+                {/* Preset Picker */}
+                <div className="text-left font-sans">
+                  <label className="text-[11px] font-bold block mb-2 text-neutral-700 dark:text-neutral-300">
+                    Choose Canvas Layout Sizing
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {FORM_CANVAS_PRESETS.map((preset) => {
+                      const isSelected = pendingCanvas.preset === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setPendingCanvas({
+                              preset: preset.id,
+                              width: preset.width,
+                              height: preset.height,
+                              unit: preset.unit,
+                            });
+                          }}
+                          className={`p-3 rounded-xl border flex flex-col items-center justify-between text-center transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'ring-2 ring-indigo-500/30' 
+                              : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                          }`}
+                          style={{
+                            borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-border)',
+                            backgroundColor: isSelected ? 'var(--color-bg-secondary)' : 'transparent',
+                          }}
+                        >
+                          {/* Visual Aspect Ratio Indicator */}
+                          <div className="h-20 w-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 rounded-lg mb-2 p-1 overflow-hidden">
+                            <div 
+                              className="border border-neutral-400/40 rounded shadow-xs transition-all"
+                              style={{
+                                aspectRatio: `${preset.width} / ${preset.height}`,
+                                maxWidth: '50px',
+                                maxHeight: '72px',
+                                width: preset.width >= preset.height ? '50px' : undefined,
+                                height: preset.width < preset.height ? '72px' : undefined,
+                                borderColor: isSelected ? 'var(--color-accent)' : undefined,
+                                backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'var(--color-border)',
+                              }}
+                            />
+                          </div>
+
+                          <span className="text-[11px] font-bold block text-neutral-800 dark:text-neutral-200 truncate max-w-full">
+                            {preset.label}
+                          </span>
+                          <span className="text-[9px] text-neutral-500 mt-1">
+                            {preset.width} × {preset.height} {preset.unit}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Sizer inputs */}
+                {pendingCanvas.preset === 'custom' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-3 gap-3 p-4 bg-neutral-50 dark:bg-neutral-900/40 rounded-xl border border-neutral-200 dark:border-neutral-800 text-left"
+                  >
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">Width</label>
+                      <input 
+                        type="number" 
+                        value={pendingCanvas.width}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, width: Math.max(1, Number(e.target.value)) }))}
+                        className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs animate-none" 
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">Height</label>
+                      <input 
+                        type="number" 
+                        value={pendingCanvas.height}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, height: Math.max(1, Number(e.target.value)) }))}
+                        className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs animate-none" 
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">Unit</label>
+                      <select 
+                        value={pendingCanvas.unit}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, unit: e.target.value as any }))}
+                        className="w-full border rounded-lg px-2 py-1.5 outline-none font-semibold text-xs bg-transparent" 
+                        style={inputStyle}
+                      >
+                        <option value="px">px</option>
+                        <option value="cm">cm</option>
+                        <option value="in">in</option>
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t mt-4" style={{ borderColor: 'var(--color-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCanvasSetupModal(false)}
+                  className="px-4 py-2 border rounded-xl text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!pendingFormName.trim()}
+                  onClick={() => {
+                    setFormName(pendingFormName);
+                    setFormCanvas(pendingCanvas);
+                    setSelectedProgramId(null);
+                    setShowCanvasSetupModal(false);
+                    // Trigger instant auto-save to establish database record
+                    setTimeout(() => markDirtyAndSave(), 50);
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-black text-white cursor-pointer transition flex items-center gap-1 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                  style={{ background: 'var(--accent-gradient)' }}
+                >
+                  Create Form
                 </button>
               </div>
             </motion.div>

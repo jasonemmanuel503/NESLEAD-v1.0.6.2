@@ -999,6 +999,9 @@ function runMigrations() {
     { id: '062_widget_voice_addon_tier', sql: `
       ALTER TABLE widget_configs ADD COLUMN voice_addon_tier TEXT DEFAULT NULL
     ` },
+    { id: '063_programs_canvas_col', sql: `
+      ALTER TABLE programs ADD COLUMN canvas TEXT DEFAULT NULL
+    ` },
   ];
 
   for (const migration of migrations) {
@@ -1172,6 +1175,7 @@ function mapProgram(row: any) {
     formBgBlendMode: row.form_bg_blend_mode || 'normal',
     formBgSize: row.form_bg_size || 'cover',
     formBgOpacity: row.form_bg_opacity !== undefined ? row.form_bg_opacity : 100,
+    canvas: row.canvas ? JSON.parse(row.canvas) : undefined,
     createdAt: row.created_at,
   };
 }
@@ -6342,7 +6346,7 @@ ${cleanHtml}
   // POST create program
   app.post('/api/programs', requireAuth, requireRole('OWNER', 'ADMIN'), async (req, res) => {
     const tenantId = req.tenant!.id;
-    const { name, department, duration, fees, description, capacityBadge, formSchema, published, formBg, formLogoUrl, formLogoPosition, formBgBlendMode, formBgSize, formBgOpacity } = req.body;
+    const { name, department, duration, fees, description, capacityBadge, formSchema, published, formBg, formLogoUrl, formLogoPosition, formBgBlendMode, formBgSize, formBgOpacity, canvas } = req.body;
     const newProgId = `prog-${Date.now()}`;
 
     try {
@@ -6367,14 +6371,15 @@ ${cleanHtml}
           form_bg_blend_mode: formBgBlendMode || 'normal',
           form_bg_size: formBgSize || 'cover',
           form_bg_opacity: formBgOpacity !== undefined ? formBgOpacity : 100,
+          canvas: canvas ? JSON.stringify(canvas) : null,
           created_at: new Date().toISOString()
         });
         const { data } = await supabase.from('programs').select('*').eq('id', newProgId).single();
         row = data;
       } else {
         dbSql.prepare(`
-          INSERT INTO programs (id, tenant_id, name, department, duration, fees, capacity_badge, rating, description, form_schema, published, form_bg, form_logo_url, form_logo_position, form_bg_blend_mode, form_bg_size, form_bg_opacity, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO programs (id, tenant_id, name, department, duration, fees, capacity_badge, rating, description, form_schema, published, form_bg, form_logo_url, form_logo_position, form_bg_blend_mode, form_bg_size, form_bg_opacity, canvas, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           newProgId, tenantId, name, department, duration, fees,
           capacityBadge || 'Newly Added', 5.0, description,
@@ -6386,6 +6391,7 @@ ${cleanHtml}
           formBgBlendMode || 'normal',
           formBgSize || 'cover',
           formBgOpacity !== undefined ? formBgOpacity : 100,
+          canvas ? JSON.stringify(canvas) : null,
           new Date().toISOString()
         );
         row = dbSql.prepare('SELECT * FROM programs WHERE id = ?').get(newProgId);
@@ -6417,7 +6423,7 @@ ${cleanHtml}
   app.patch('/api/programs/:id', requireAuth, requireRole('OWNER', 'ADMIN'), async (req, res) => {
     const { id } = req.params;
     const tenantId = req.tenant!.id;
-    const { name, department, duration, fees, description, capacityBadge, formSchema, published, formBg, formLogoUrl, formLogoPosition, formBgBlendMode, formBgSize, formBgOpacity } = req.body;
+    const { name, department, duration, fees, description, capacityBadge, formSchema, published, formBg, formLogoUrl, formLogoPosition, formBgBlendMode, formBgSize, formBgOpacity, canvas } = req.body;
 
     try {
       const supabase = getSupabaseServer();
@@ -6437,6 +6443,7 @@ ${cleanHtml}
         if (formBgBlendMode !== undefined) updates.form_bg_blend_mode = formBgBlendMode;
         if (formBgSize !== undefined) updates.form_bg_size = formBgSize;
         if (formBgOpacity !== undefined) updates.form_bg_opacity = formBgOpacity;
+        if (canvas !== undefined) updates.canvas = canvas ? JSON.stringify(canvas) : null;
         await supabase.from('programs').update(updates).eq('id', id).eq('tenant_id', tenantId);
         const { data } = await supabase.from('programs').select('*').eq('id', id).single();
          return res.json(mapProgram(data));
@@ -6457,6 +6464,7 @@ ${cleanHtml}
         if (formBgBlendMode !== undefined) { fields.push('form_bg_blend_mode = ?'); values.push(formBgBlendMode); }
         if (formBgSize !== undefined) { fields.push('form_bg_size = ?'); values.push(formBgSize); }
         if (formBgOpacity !== undefined) { fields.push('form_bg_opacity = ?'); values.push(formBgOpacity); }
+        if (canvas !== undefined) { fields.push('canvas = ?'); values.push(canvas ? JSON.stringify(canvas) : null); }
         if (fields.length === 0) return res.json({ success: true });
         values.push(id, tenantId);
         dbSql.prepare(`UPDATE programs SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`).run(...values);

@@ -419,6 +419,12 @@ export interface Program {
   formBgBlendMode?: string;
   formBgSize?: 'cover' | 'contain' | 'auto';
   formBgOpacity?: number; // 0–100
+  canvas?: {
+    width: number;
+    height: number;
+    unit: 'px' | 'cm' | 'in';
+    preset: string;       // e.g. 'desktop_form', 'a4_portrait', 'custom', etc.
+  };
   createdAt?: string;   // ISO 8601 timestamp — set once on creation
   updatedAt?: string;   // ISO 8601 timestamp — updated on every save
 }
