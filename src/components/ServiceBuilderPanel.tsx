@@ -5739,83 +5739,82 @@ export default function ServiceBuilderPanel({
 
   // Sync when selected program changes
   useEffect(() => {
-    // Only re-parse bgMode when switching programs, not during active editing
-    if (!isDirtyRef.current) {
-      const p = programs.find(pr => pr.id === selectedProgramId) || null;
-      setName(p?.name || '');
-      setIsPublished(p?.published || false);
-      if (!selectedProgramId) {
-        setFormName('');
-        setFormBg('');
-        setFormLogoUrl('');
-        setFormLogoPosition('top-left');
-        setBgBlendMode('normal');
-        setBgSize('cover');
-        setBgOpacity(100);
-        setBgSolidOpacity(100);
-        setBgGradientOpacity(100);
-        setBgImageOverlayColor('#000000');
-        setBgImageOverlayOpacity(0);
-        setBgGlassEnabled(false);
-        setBgGlassBlur(12);
-        setBgGlassBorderRadius(16);
-        setBgGlassBorderColor('#ffffff');
-        setBgGlassBorderWidth(1);
-        setBgGlassColorStops([{ color: '#6366f1', position: 0, opacity: 30 }, { color: '#8b5cf6', position: 100, opacity: 20 }]);
-        setBgGlassAngle(135);
-      } else {
-        setFormName(p?.name || '');
-        setFormBg(p?.formBg || '');
-        setFormLogoUrl(p?.formLogoUrl || '');
-        setFormLogoPosition(p?.formLogoPosition || 'top-left');
-        setBgBlendMode(p?.formBgBlendMode || 'normal');
-        setBgSize(p?.formBgSize || 'cover');
-        setBgOpacity(p?.formBgOpacity !== undefined ? p.formBgOpacity : 100);
+    // Reset dirty ref on program shift so fields load correctly
+    isDirtyRef.current = false;
+    const p = programs.find(pr => pr.id === selectedProgramId) || null;
+    setName(p?.name || '');
+    setIsPublished(p?.published || false);
+    if (!selectedProgramId) {
+      setFormName('');
+      setFormBg('');
+      setFormLogoUrl('');
+      setFormLogoPosition('top-left');
+      setBgBlendMode('normal');
+      setBgSize('cover');
+      setBgOpacity(100);
+      setBgSolidOpacity(100);
+      setBgGradientOpacity(100);
+      setBgImageOverlayColor('#000000');
+      setBgImageOverlayOpacity(0);
+      setBgGlassEnabled(false);
+      setBgGlassBlur(12);
+      setBgGlassBorderRadius(16);
+      setBgGlassBorderColor('#ffffff');
+      setBgGlassBorderWidth(1);
+      setBgGlassColorStops([{ color: '#6366f1', position: 0, opacity: 30 }, { color: '#8b5cf6', position: 100, opacity: 20 }]);
+      setBgGlassAngle(135);
+    } else {
+      setFormName(p?.name || '');
+      setFormBg(p?.formBg || '');
+      setFormLogoUrl(p?.formLogoUrl || '');
+      setFormLogoPosition(p?.formLogoPosition || 'top-left');
+      setBgBlendMode(p?.formBgBlendMode || 'normal');
+      setBgSize(p?.formBgSize || 'cover');
+      setBgOpacity(p?.formBgOpacity !== undefined ? p.formBgOpacity : 100);
 
-        const designBlock = p?.formSchema?.find((f: any) => f.type === 'form_design_block');
-        setBgSolidOpacity(designBlock?.bgSolidOpacity !== undefined ? designBlock.bgSolidOpacity : 100);
-        setBgGradientOpacity(designBlock?.bgGradientOpacity !== undefined ? designBlock.bgGradientOpacity : 100);
-        setBgImageOverlayColor(designBlock?.bgImageOverlayColor || '#000000');
-        setBgImageOverlayOpacity(designBlock?.bgImageOverlayOpacity !== undefined ? designBlock.bgImageOverlayOpacity : 0);
-        setBgGlassEnabled(Boolean(designBlock?.bgGlassEnabled));
-        setBgGlassBlur(designBlock?.bgGlassBlur !== undefined ? designBlock.bgGlassBlur : 12);
-        setBgGlassBorderRadius(designBlock?.bgGlassBorderRadius !== undefined ? designBlock.bgGlassBorderRadius : 16);
-        setBgGlassBorderColor(designBlock?.bgGlassBorderColor || '#ffffff');
-        setBgGlassBorderWidth(designBlock?.bgGlassBorderWidth !== undefined ? designBlock.bgGlassBorderWidth : 1);
-        setBgGlassColorStops(designBlock?.bgGlassColorStops || [{ color: '#6366f1', position: 0, opacity: 30 }, { color: '#8b5cf6', position: 100, opacity: 20 }]);
-        setBgGlassAngle(designBlock?.bgGlassAngle !== undefined ? designBlock.bgGlassAngle : 135);
-      }
-      // Reset background builder from saved formBg
-      const savedBg = p?.formBg || '';
-      if (!savedBg) {
-        setBgMode('solid');
-        setBgSolidColor('#ffffff');
-      } else if (savedBg.startsWith('http') || savedBg.startsWith('/') || savedBg.startsWith('url(') || savedBg.startsWith('data:')) {
-        setBgMode('image');
-        setBgImageUrl(savedBg);
-      } else if (savedBg.includes('gradient')) {
-        setBgMode('gradient');
-        // Attempt to parse the saved gradient — if it fails, use defaults
-        try {
-          const match = savedBg.match(/linear-gradient\((\d+)deg,\s*(#[0-9a-fA-F]{3,6}|rgb[^,]+),\s*(#[0-9a-fA-F]{3,6}|rgb[^,]+)\)/);
-          if (match) {
-            setBgGradientAngle(parseInt(match[1]));
-            setBgGradientColor1(match[2].trim());
-            setBgGradientColor2(match[3].trim());
-          }
-        } catch {}
-      } else {
-        setBgMode('solid');
-        setBgSolidColor(savedBg);
-      }
-      setDept(p?.department || '');
-      setDuration(p?.duration || '');
-      setFees(p?.fees || '');
-      setBadge(p?.capacityBadge || '');
-      setDesc(p?.description || '');
-      setFields(p?.formSchema || []);
-      setPreviewFields(p?.formSchema || []);
+      const designBlock = p?.formSchema?.find((f: any) => f.type === 'form_design_block');
+      setBgSolidOpacity(designBlock?.bgSolidOpacity !== undefined ? designBlock.bgSolidOpacity : 100);
+      setBgGradientOpacity(designBlock?.bgGradientOpacity !== undefined ? designBlock.bgGradientOpacity : 100);
+      setBgImageOverlayColor(designBlock?.bgImageOverlayColor || '#000000');
+      setBgImageOverlayOpacity(designBlock?.bgImageOverlayOpacity !== undefined ? designBlock.bgImageOverlayOpacity : 0);
+      setBgGlassEnabled(Boolean(designBlock?.bgGlassEnabled));
+      setBgGlassBlur(designBlock?.bgGlassBlur !== undefined ? designBlock.bgGlassBlur : 12);
+      setBgGlassBorderRadius(designBlock?.bgGlassBorderRadius !== undefined ? designBlock.bgGlassBorderRadius : 16);
+      setBgGlassBorderColor(designBlock?.bgGlassBorderColor || '#ffffff');
+      setBgGlassBorderWidth(designBlock?.bgGlassBorderWidth !== undefined ? designBlock.bgGlassBorderWidth : 1);
+      setBgGlassColorStops(designBlock?.bgGlassColorStops || [{ color: '#6366f1', position: 0, opacity: 30 }, { color: '#8b5cf6', position: 100, opacity: 20 }]);
+      setBgGlassAngle(designBlock?.bgGlassAngle !== undefined ? designBlock.bgGlassAngle : 135);
     }
+    // Reset background builder from saved formBg
+    const savedBg = p?.formBg || '';
+    if (!savedBg) {
+      setBgMode('solid');
+      setBgSolidColor('#ffffff');
+    } else if (savedBg.startsWith('http') || savedBg.startsWith('/') || savedBg.startsWith('url(') || savedBg.startsWith('data:')) {
+      setBgMode('image');
+      setBgImageUrl(savedBg);
+    } else if (savedBg.includes('gradient')) {
+      setBgMode('gradient');
+      // Attempt to parse the saved gradient — if it fails, use defaults
+      try {
+        const match = savedBg.match(/linear-gradient\((\d+)deg,\s*(#[0-9a-fA-F]{3,6}|rgb[^,]+),\s*(#[0-9a-fA-F]{3,6}|rgb[^,]+)\)/);
+        if (match) {
+          setBgGradientAngle(parseInt(match[1]));
+          setBgGradientColor1(match[2].trim());
+          setBgGradientColor2(match[3].trim());
+        }
+      } catch {}
+    } else {
+      setBgMode('solid');
+      setBgSolidColor(savedBg);
+    }
+    setDept(p?.department || '');
+    setDuration(p?.duration || '');
+    setFees(p?.fees || '');
+    setBadge(p?.capacityBadge || '');
+    setDesc(p?.description || '');
+    setFields(p?.formSchema || []);
+    setPreviewFields(p?.formSchema || []);
   }, [selectedProgramId]);
 
   // UI state
@@ -5938,39 +5937,42 @@ export default function ServiceBuilderPanel({
     let currentId = selectedProgramId;
     setIsPushingTemplate(true);
     try {
-      if (!currentId) {
-        // Form has not been saved yet! Let's name it and save it.
-        const finalName = name || formName;
-        if (!finalName.trim()) {
-          alert("Please provide a name for your custom form in the 'Name this form...' input before pushing it to templates.");
-          setIsPushingTemplate(false);
-          return;
-        }
+      const finalName = (selectedProgramId ? name : formName) || '';
+      if (!finalName.trim()) {
+        alert("Please provide a name for your custom form before pushing it to templates.");
+        setIsPushingTemplate(false);
+        return;
+      }
 
-        setSaveStatus('saving');
-        const savedItem = await onSave({
-          programId: undefined,
-          name: finalName,
-          department: dept,
-          duration,
-          fees,
-          capacityBadge: badge,
-          description: desc,
-          formSchema: fields,
-          published: isPublished,
-          formBg,
-          formLogoUrl,
-          formLogoPosition,
-        });
+      // Always save draft first to guarantee the template matches exactly what is in the user's builder canvas
+      setSaveStatus('saving');
+      const savedItem = await onSave({
+        programId: currentId || undefined,
+        name: finalName,
+        department: dept,
+        duration,
+        fees,
+        capacityBadge: badge,
+        description: desc,
+        formSchema: fields,
+        published: isPublished,
+        formBg,
+        formLogoUrl,
+        formLogoPosition,
+        formBgBlendMode: bgBlendMode,
+        formBgSize: bgSize,
+        formBgOpacity: bgOpacity
+      });
 
-        if (savedItem && savedItem.id) {
-          currentId = savedItem.id;
-          setSelectedProgramId(savedItem.id);
-          setSaveStatus('saved');
-          setTimeout(() => setSaveStatus('idle'), 2500);
-        } else {
-          throw new Error('Failed to save the form draft before promoting to templates. Please save draft manually first.');
-        }
+      if (savedItem && savedItem.id) {
+        currentId = savedItem.id;
+        setSelectedProgramId(savedItem.id);
+        setName(finalName);
+        setFormName(finalName);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2500);
+      } else if (!currentId) {
+        throw new Error('Failed to save the form draft before promoting to templates. Please save draft manually first.');
       }
 
       const token = localStorage.getItem('neslead_session_token') || '';
@@ -5981,7 +5983,7 @@ export default function ServiceBuilderPanel({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          templateName: (selectedProgramId ? name : formName) || 'Custom Program Form',
+          templateName: finalName || 'Custom Program Form',
           description: desc || 'Sleek customized form pushed directly from builder',
           category: 'premium',
           tags: ['Community', 'Custom'],
@@ -5998,7 +6000,7 @@ export default function ServiceBuilderPanel({
         alert('🎉 Success! This form has been successfully pushed as a global template and added to the Master Templates Library!');
       } else {
         const data = await res.json();
-        throw new Error(data.message || 'Promotion to template failed');
+        throw new Error(data.message || data.error || 'Promotion to template failed');
       }
     } catch (err: any) {
       alert(err.message || 'Failed to promote program to templates');
