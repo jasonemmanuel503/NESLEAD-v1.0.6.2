@@ -230,6 +230,8 @@ export interface FormField {
   positionX?: number;   // px from left edge of form
   positionY?: number;   // px from top edge of form
   positionWidth?: string; // CSS width, e.g. '100%', '200px', 'auto'
+  opacity?: number;     // 0-100, default 100
+  zIndex?: number;      // stacking order among absolutely-positioned fields, default 0
   // Responsive alignment presets (applied when positionMode === 'absolute')
   positionPreset?: 'none' | 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 

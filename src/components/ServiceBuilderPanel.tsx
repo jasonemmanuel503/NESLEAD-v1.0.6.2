@@ -9,7 +9,7 @@ import {
   Square, SeparatorVertical,
   Clock, CalendarRange, MapPin, Pipette, PenTool, KeyRound, Calculator, Table,
   ListOrdered, Gauge, Globe, FileCheck, Layers, Repeat, Loader, Video, Shapes, Badge,
-  Smartphone, Tablet, Monitor
+  Smartphone, Tablet, Monitor, Move
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { FormField, FormFieldType, Program, FormTemplate } from '../types';
@@ -639,6 +639,7 @@ interface FieldEditorProps {
   key?: React.Key;
   field: FormField;
   index: number;
+  fields?: FormField[];
   total: number;
   totalCount?: number;
   onChange: (id: string, updated: Partial<FormField>, skipSave?: boolean) => void;
@@ -703,7 +704,7 @@ interface FieldEditorProps {
 function FieldEditor({
   field, index, total, totalCount, onChange, onDelete, onMoveUp, onMoveDown, onDuplicate,
   isDragOver, onDragStart, onDragOver, onDrop, onDragEnd, markDirtyAndSave,
-  onDesignChange, designState
+  onDesignChange, designState, fields = []
 }: FieldEditorProps) {
   const [expanded, setExpanded] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
@@ -879,6 +880,7 @@ function FieldEditor({
                     key={cf.id || cfIdx}
                     field={cf}
                     index={cfIdx}
+                    fields={colFields}
                     total={colFields.length}
                     totalCount={colFields.length}
                     onChange={(fieldId, updates, skipSave) => {
@@ -983,6 +985,7 @@ function FieldEditor({
                 key={af.id || afIdx}
                 field={af}
                 index={afIdx}
+                fields={field.accordionFields || []}
                 total={(field.accordionFields || []).length}
                 totalCount={(field.accordionFields || []).length}
                 onChange={(subId, updates, skipSave) => {
@@ -1104,6 +1107,7 @@ function FieldEditor({
                 key={tf.id || tfIdx}
                 field={tf}
                 index={tfIdx}
+                fields={((field.tabContents || [[], []])[field.scaleMin ?? 0] || [])}
                 total={((field.tabContents || [[], []])[field.scaleMin ?? 0] || []).length}
                 totalCount={((field.tabContents || [[], []])[field.scaleMin ?? 0] || []).length}
                 onChange={(subId, updates, skipSave) => {
@@ -1213,6 +1217,7 @@ function FieldEditor({
                 key={rf.id || rfIdx}
                 field={rf}
                 index={rfIdx}
+                fields={field.repeatingFieldGroup || []}
                 total={(field.repeatingFieldGroup || []).length}
                 totalCount={(field.repeatingFieldGroup || []).length}
                 onChange={(subId, updates, skipSave) => {
@@ -2161,6 +2166,64 @@ function FieldEditor({
                             placeholder="100%, 200px, auto"
                             className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
                             style={inputStyle} />
+                        </div>
+
+                        {/* Opacity */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            <span>Opacity: {field.opacity ?? 100}%</span>
+                          </div>
+                          <input type="range" min={0} max={100} step={1}
+                            value={field.opacity ?? 100}
+                            onChange={(e) => { onChange(field.id, { opacity: Number(e.target.value) }); markDirtyAndSave(); }}
+                            className="w-full accent-indigo-500 cursor-pointer text-xs" />
+                        </div>
+
+                        {/* Z-Index & Layer Order */}
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <div className="space-y-1">
+                            <label className="text-[10px] block" style={{ color: 'var(--color-text-secondary)' }}>Z-Index</label>
+                            <input type="number" value={field.zIndex ?? 0}
+                              onChange={(e) => { onChange(field.id, { zIndex: Number(e.target.value) }); markDirtyAndSave(); }}
+                              className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
+                              style={inputStyle} />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] block text-center" style={{ color: 'var(--color-text-secondary)' }}>Layer Order</label>
+                            <div className="flex gap-1 justify-center">
+                              <button type="button"
+                                onClick={() => {
+                                  const absoluteFields = (fields || []).filter((f: any) => f.positionMode === 'absolute' && f.id !== field.id);
+                                  const maxZ = absoluteFields.length > 0 ? Math.max(...absoluteFields.map((f: any) => f.zIndex ?? 0)) : 0;
+                                  const currentZ = field.zIndex ?? 0;
+                                  const targetZ = Math.max(currentZ + 1, maxZ + 1);
+                                  onChange(field.id, { zIndex: targetZ });
+                                  markDirtyAndSave();
+                                }}
+                                className="flex-1 py-1 px-1 rounded border text-[9px] font-bold transition hover:bg-neutral-50 cursor-pointer text-center"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }}
+                                title="Bring to Front"
+                              >
+                                🔼 Up
+                              </button>
+                              <button type="button"
+                                onClick={() => {
+                                  const absoluteFields = (fields || []).filter((f: any) => f.positionMode === 'absolute' && f.id !== field.id);
+                                  const minZ = absoluteFields.length > 0 ? Math.min(...absoluteFields.map((f: any) => f.zIndex ?? 0)) : 0;
+                                  const currentZ = field.zIndex ?? 0;
+                                  const targetZ = Math.min(currentZ - 1, minZ - 1);
+                                  onChange(field.id, { zIndex: targetZ });
+                                  markDirtyAndSave();
+                                }}
+                                className="flex-1 py-1 px-1 rounded border text-[9px] font-bold transition hover:bg-neutral-50 cursor-pointer text-center"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }}
+                                title="Send to Back"
+                              >
+                                🔽 Back
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -3232,6 +3295,64 @@ function FieldEditor({
                             className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
                             style={inputStyle} />
                         </div>
+
+                        {/* Opacity */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            <span>Opacity: {field.opacity ?? 100}%</span>
+                          </div>
+                          <input type="range" min={0} max={100} step={1}
+                            value={field.opacity ?? 100}
+                            onChange={(e) => { onChange(field.id, { opacity: Number(e.target.value) }); markDirtyAndSave(); }}
+                            className="w-full accent-indigo-500 cursor-pointer text-xs" />
+                        </div>
+
+                        {/* Z-Index & Layer Order */}
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <div className="space-y-1">
+                            <label className="text-[10px] block" style={{ color: 'var(--color-text-secondary)' }}>Z-Index</label>
+                            <input type="number" value={field.zIndex ?? 0}
+                              onChange={(e) => { onChange(field.id, { zIndex: Number(e.target.value) }); markDirtyAndSave(); }}
+                              className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs"
+                              style={inputStyle} />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] block text-center" style={{ color: 'var(--color-text-secondary)' }}>Layer Order</label>
+                            <div className="flex gap-1 justify-center">
+                              <button type="button"
+                                onClick={() => {
+                                  const absoluteFields = (fields || []).filter((f: any) => f.positionMode === 'absolute' && f.id !== field.id);
+                                  const maxZ = absoluteFields.length > 0 ? Math.max(...absoluteFields.map((f: any) => f.zIndex ?? 0)) : 0;
+                                  const currentZ = field.zIndex ?? 0;
+                                  const targetZ = Math.max(currentZ + 1, maxZ + 1);
+                                  onChange(field.id, { zIndex: targetZ });
+                                  markDirtyAndSave();
+                                }}
+                                className="flex-1 py-1 px-1 rounded border text-[9px] font-bold transition hover:bg-neutral-50 cursor-pointer text-center"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }}
+                                title="Bring to Front"
+                              >
+                                🔼 Up
+                              </button>
+                              <button type="button"
+                                onClick={() => {
+                                  const absoluteFields = (fields || []).filter((f: any) => f.positionMode === 'absolute' && f.id !== field.id);
+                                  const minZ = absoluteFields.length > 0 ? Math.min(...absoluteFields.map((f: any) => f.zIndex ?? 0)) : 0;
+                                  const currentZ = field.zIndex ?? 0;
+                                  const targetZ = Math.min(currentZ - 1, minZ - 1);
+                                  onChange(field.id, { zIndex: targetZ });
+                                  markDirtyAndSave();
+                                }}
+                                className="flex-1 py-1 px-1 rounded border text-[9px] font-bold transition hover:bg-neutral-50 cursor-pointer text-center"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }}
+                                title="Send to Back"
+                              >
+                                🔽 Back
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3941,7 +4062,8 @@ function PriceDisplayPreview({ field, value, onChange }: { field: FormField; val
 // ─── Live preview (fully interactive) ─────────────────────────────────────────
 function FormPreview({
   fields, serviceName, fees, description, formBg, formLogoUrl, formLogoPosition = 'top-left', hideTitle = true,
-  formBgBlendMode = 'normal', formBgSize = 'cover', formBgOpacity = 100
+  formBgBlendMode = 'normal', formBgSize = 'cover', formBgOpacity = 100,
+  onChange, markDirtyAndSave
 }: {
   fields: FormField[];
   serviceName: string;
@@ -3954,6 +4076,8 @@ function FormPreview({
   formBgBlendMode?: string;
   formBgSize?: 'cover' | 'contain' | 'auto';
   formBgOpacity?: number;
+  onChange?: (id: string, updated: Partial<FormField>) => void;
+  markDirtyAndSave?: () => void;
 }) {
   const [values, setValues] = useState<Record<string, any>>({});
   const [checkedOptions, setCheckedOptions] = useState<Record<string, string[]>>({});
@@ -3963,6 +4087,106 @@ function FormPreview({
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
   const [expandedAccordions, setExpandedAccordions] = useState<Record<string, number>>({});
   const [activeTabs, setActiveTabs] = useState<Record<string, number>>({});
+
+  // Canvas selection and pointer-based drag states
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [activeDrag, setActiveDrag] = useState<{
+    fieldId: string;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    currentX: number;
+    currentY: number;
+    guides: { x?: number; y?: number } | null;
+  } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent, field: FormField) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const origX = field.positionX ?? 0;
+    const origY = field.positionY ?? 0;
+
+    setActiveDrag({
+      fieldId: field.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX,
+      origY,
+      currentX: origX,
+      currentY: origY,
+      guides: null
+    });
+
+    setSelectedFieldId(field.id);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!activeDrag) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const dragField = fields.find(f => f.id === activeDrag.fieldId);
+    if (!dragField) return;
+
+    const deltaX = e.clientX - activeDrag.startX;
+    const deltaY = e.clientY - activeDrag.startY;
+
+    let nextX = activeDrag.origX + deltaX;
+    let nextY = activeDrag.origY + deltaY;
+
+    // Alignment and snapping comparison logic
+    const otherFields = fields.filter(f => f.positionMode === 'absolute' && f.id !== dragField.id);
+    let guideLines: { x?: number; y?: number } | null = null;
+    const snapThreshold = 6;
+
+    for (const other of otherFields) {
+      const otherX = other.positionX ?? 0;
+      const otherY = other.positionY ?? 0;
+
+      // Snap left edge
+      if (Math.abs(nextX - otherX) < snapThreshold) {
+        nextX = otherX;
+        guideLines = { ...guideLines, x: otherX };
+      }
+
+      // Snap top edge
+      if (Math.abs(nextY - otherY) < snapThreshold) {
+        nextY = otherY;
+        guideLines = { ...guideLines, y: otherY };
+      }
+    }
+
+    setActiveDrag(prev => prev ? {
+      ...prev,
+      currentX: nextX,
+      currentY: nextY,
+      guides: guideLines
+    } : null);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!activeDrag) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
+    const finalX = activeDrag.currentX;
+    const finalY = activeDrag.currentY;
+    const dragId = activeDrag.fieldId;
+
+    setActiveDrag(null);
+
+    if (onChange) {
+      onChange(dragId, { positionX: finalX, positionY: finalY, positionPreset: 'none' });
+      if (markDirtyAndSave) {
+        markDirtyAndSave();
+      }
+    }
+  };
 
   const safeMathEval = (exprString: string): number => {
     const safeExpr = exprString.replace(/[^0-9+\-*/().\s]/g, '');
@@ -4011,8 +4235,19 @@ function FormPreview({
 
   const getAbsoluteStyle = (field: FormField): React.CSSProperties => {
     if (field.positionMode !== 'absolute') return {};
-    
+
     const preset = field.positionPreset;
+    const dynamicZIndex = field.zIndex ?? 0;
+    const dynamicOpacity = (field.opacity ?? 100) / 100;
+
+    let currentX = field.positionX ?? 0;
+    let currentY = field.positionY ?? 0;
+
+    if (activeDrag && activeDrag.fieldId === field.id) {
+      currentX = activeDrag.currentX;
+      currentY = activeDrag.currentY;
+    }
+
     if (preset && preset !== 'none') {
       const presets: Record<string, React.CSSProperties> = {
         'top-left':      { position: 'absolute', top: 0, left: 0 },
@@ -4023,21 +4258,66 @@ function FormPreview({
         'bottom-center': { position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' },
         'bottom-right':  { position: 'absolute', bottom: 0, right: 0 },
       };
-      return { ...presets[preset], width: field.positionWidth ?? '100%', zIndex: 10 };
+      return {
+        ...presets[preset],
+        width: field.positionWidth ?? '100%',
+        zIndex: dynamicZIndex,
+        opacity: dynamicOpacity
+      };
     }
-    
+
     return {
       position: 'absolute',
-      left: `${field.positionX ?? 0}px`,
-      top: `${field.positionY ?? 0}px`,
+      left: `${currentX}px`,
+      top: `${currentY}px`,
       width: field.positionWidth ?? '100%',
-      zIndex: 10,
+      zIndex: dynamicZIndex,
+      opacity: dynamicOpacity,
     };
   };
 
   const renderField = (field: FormField) => {
+    const isAbsolute = field.positionMode === 'absolute';
+    const isSelected = selectedFieldId === field.id;
+
     return (
-      <div key={field.id} className="space-y-1.5 animate-fade-in" style={getAbsoluteStyle(field)}>
+      <div
+        key={field.id}
+        className={`animate-fade-in ${isAbsolute ? 'group select-none' : 'space-y-1.5'}`}
+        style={getAbsoluteStyle(field)}
+        onClick={(e) => {
+          if (onChange && isAbsolute) {
+            e.stopPropagation();
+            setSelectedFieldId(field.id);
+          }
+        }}
+      >
+        {isAbsolute && onChange && (
+          <>
+            {/* Guide borders */}
+            <div
+              className={`absolute -inset-2 pointer-events-none rounded-xl border-2 border-dashed z-40 transition-all ${
+                isSelected
+                  ? 'border-indigo-500 opacity-100 scale-100'
+                  : 'border-indigo-400 opacity-0 group-hover:opacity-40 scale-95'
+              }`}
+            />
+
+            {/* Grab handle with Pointer Capture */}
+            <div
+              className={`absolute -top-3.5 -left-3.5 z-50 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-md cursor-move select-none transition-opacity ${
+                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}
+              style={{ touchAction: 'none' }}
+              onPointerDown={(e) => handlePointerDown(e, field)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              title="Drag field to position"
+            >
+              <Move className="w-3.5 h-3.5" />
+            </div>
+          </>
+        )}
         {/* Layout: form title */}
         {field.type === 'form_title' && (() => {
           const style: React.CSSProperties = {
@@ -5514,7 +5794,7 @@ function FormPreview({
             />
           </div>
         )}
-        <div id={designBlock ? `form-preview-container-${designBlock.id}` : undefined} className="p-4 sm:p-5 space-y-4 text-xs pb-8" style={{ fontFamily: designBlock?.fontFamilyAll || 'inherit', position: 'relative', minHeight: '400px' }}>
+        <div id={designBlock ? `form-preview-container-${designBlock.id}` : undefined} className="p-4 sm:p-5 space-y-4 text-xs pb-8 form-preview-canvas" style={{ fontFamily: designBlock?.fontFamilyAll || 'inherit', position: 'relative', minHeight: '400px' }}>
           <div className="space-y-1">
             {!hideTitle && (
               <h3 className="font-black text-sm" style={{ color: 'var(--color-text-primary)' }}>{serviceName || 'Service Name'}</h3>
@@ -5530,6 +5810,24 @@ function FormPreview({
           )}
 
           {fields.map(renderField)}
+
+          {/* Alignment Guides Overlay */}
+          {activeDrag?.guides && (
+            <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+              {activeDrag.guides.x !== undefined && (
+                <div 
+                  className="absolute top-0 bottom-0 border-l border-dashed border-indigo-500"
+                  style={{ left: `${activeDrag.guides.x}px` }}
+                />
+              )}
+              {activeDrag.guides.y !== undefined && (
+                <div 
+                  className="absolute left-0 right-0 border-t border-dashed border-indigo-500"
+                  style={{ top: `${activeDrag.guides.y}px` }}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -7297,6 +7595,7 @@ export default function ServiceBuilderPanel({
                             <FieldEditor
                               field={field}
                               index={index}
+                              fields={fields}
                               total={fields.length}
                               onChange={handleFieldChange}
                               onDelete={handleFieldDelete}
@@ -7379,6 +7678,11 @@ export default function ServiceBuilderPanel({
                       formBgSize={bgSize}
                       formBgOpacity={bgOpacity}
                       hideTitle={true}
+                      onChange={(fieldId, updates) => {
+                        handleFieldChange(fieldId, updates);
+                        setPreviewFields(prev => prev.map(f => f.id === fieldId ? { ...f, ...updates } : f));
+                      }}
+                      markDirtyAndSave={markDirtyAndSave}
                     />
                   </div>
                 </motion.div>
@@ -7624,6 +7928,8 @@ export default function ServiceBuilderPanel({
                 formBgSize={bgSize}
                 formBgOpacity={bgOpacity}
                 hideTitle={true}
+                onChange={handleFieldChange}
+                markDirtyAndSave={markDirtyAndSave}
               />
             </div>
           </motion.div>
@@ -7734,6 +8040,8 @@ export default function ServiceBuilderPanel({
                   formBgSize={bgSize}
                   formBgOpacity={bgOpacity}
                   hideTitle={true}
+                  onChange={handleFieldChange}
+                  markDirtyAndSave={markDirtyAndSave}
                 />
               </div>
             </div>
