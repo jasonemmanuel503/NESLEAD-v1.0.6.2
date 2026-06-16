@@ -7033,6 +7033,16 @@ export default function ServiceBuilderPanel({
     triggerAutoSave();
   }, [triggerAutoSave]);
 
+  // Auto-create a Form Design Block if one doesn't exist when user opens Fonts tab.
+  // This removes the confusing gate that blocked typography access.
+  useEffect(() => {
+    if (activeTab === 'fonts' && !fields.find(f => f.type === 'form_design_block')) {
+      const newDesignBlock = createField('form_design_block', 'Background & Design');
+      setFields(prev => [newDesignBlock, ...prev]);
+      markDirtyAndSave();
+    }
+  }, [activeTab, fields, setFields, markDirtyAndSave]);
+
   // Drag from palette
   const handlePaletteDragStart = (e: React.DragEvent<any>, item: PaletteItem) => {
     const ghost = document.createElement('div');
@@ -7962,111 +7972,236 @@ export default function ServiceBuilderPanel({
 
       {activeTab === 'fonts' && (() => {
         const designBlock = fields.find(f => f.type === 'form_design_block');
+        if (!designBlock) return null; // brief render gap before useEffect fires
+
         return (
           <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto p-4 sm:p-6 font-sans">
-            <div className="max-w-xl mx-auto w-full bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-6" style={{ borderColor: 'var(--color-border)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 border border-indigo-150/30">
-                  <span className="text-lg">🔤</span>
+            <div className="max-w-xl mx-auto w-full space-y-6">
+
+              {/* ── Section 1: Font Families ─────────────────────── */}
+              <div className="bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-4" style={{ borderColor: 'var(--color-border)' }}>
+                <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                  🔤 Font Families
+                </h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {([
+                    { label: 'All Elements', key: 'fontFamilyAll' },
+                    { label: 'Form Title', key: 'fontFamilyTitle' },
+                    { label: 'Body / Labels', key: 'fontFamilyBody' },
+                    { label: 'Buttons', key: 'fontFamilyButton' },
+                  ] as const).map(({ label, key }) => (
+                    <div key={key} className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[11px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
+                        <span className="text-[10px] font-mono text-neutral-400">{(designBlock as any)[key] || 'Default'}</span>
+                      </div>
+                      <select
+                        value={(designBlock as any)[key] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          loadGoogleFont(val);
+                          handleFieldChange(designBlock.id, { [key]: val });
+                          markDirtyAndSave();
+                        }}
+                        className="w-full border rounded-xl px-3 py-2 text-xs outline-none cursor-pointer transition focus:border-indigo-400"
+                        style={{
+                          backgroundColor: 'var(--color-bg-secondary)',
+                          color: 'var(--color-text-primary)',
+                          borderColor: 'var(--color-border)',
+                          fontFamily: (designBlock as any)[key] || 'inherit',
+                        }}
+                      >
+                        <option value="">Default (system font)</option>
+                        {GOOGLE_FONTS.map(f => (
+                          <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--color-text-primary)' }}>Typography & Google Fonts</h2>
-                  <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>Changes apply to all form elements live.</p>
+                {/* Reset to defaults */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFieldChange(designBlock.id, {
+                      fontFamilyAll: '',
+                      fontFamilyTitle: '',
+                      fontFamilyBody: '',
+                      fontFamilyButton: '',
+                    });
+                    markDirtyAndSave();
+                  }}
+                  className="text-[10px] font-bold text-red-400 hover:text-red-600 transition cursor-pointer text-left"
+                >
+                  ↺ Reset all fonts to default
+                </button>
+              </div>
+
+              {/* ── Section 2: Text Colors ───────────────────────── */}
+              <div className="bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-4" style={{ borderColor: 'var(--color-border)' }}>
+                <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                  🎨 Text Colors
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  {([
+                    { label: 'Title Color', key: 'titleColor' },
+                    { label: 'Body Color', key: 'bodyColor' },
+                    { label: 'Placeholder Color', key: 'placeholderColor' },
+                    { label: 'Button Text Color', key: 'textColor' },
+                  ] as const).map(({ label, key }) => (
+                    <div key={key} className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--color-text-secondary)' }}>
+                        {label}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={(designBlock as any)[key] || '#000000'}
+                          onChange={(e) => handleFieldChange(designBlock.id, { [key]: e.target.value })}
+                          onBlur={() => markDirtyAndSave()}
+                          className="w-8 h-8 rounded-lg border cursor-pointer p-0.5"
+                          style={{ borderColor: 'var(--color-border)' }}
+                        />
+                        <input
+                          type="text"
+                          value={(designBlock as any)[key] || ''}
+                          placeholder="inherit"
+                          onChange={(e) => handleFieldChange(designBlock.id, { [key]: e.target.value })}
+                          onBlur={() => markDirtyAndSave()}
+                          className="flex-1 border rounded-lg px-2 py-1.5 text-[10px] font-mono outline-none"
+                          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {!designBlock ? (
-                <div className="text-center py-10 px-4 border-2 border-dashed rounded-xl" style={{ borderColor: 'var(--color-border)' }}>
-                  <p className="text-2xl mb-1.5 font-sans">🎨</p>
-                  <p className="text-xs font-bold leading-relaxed font-sans" style={{ color: 'var(--color-text-secondary)' }}>
-                    Add a 'Form Design Block' field to your form first to unlock typography settings.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 gap-4">
-                    {([
-                      { label: 'All Elements', key: 'fontFamilyAll' },
-                      { label: 'Form Title', key: 'fontFamilyTitle' },
-                      { label: 'Body / Labels', key: 'fontFamilyBody' },
-                      { label: 'Buttons', key: 'fontFamilyButton' },
-                    ] as const).map(({ label, key }) => (
-                      <div key={key} className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[11px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>
-                          <span className="text-[10px] font-mono text-neutral-400 capitalize">{(designBlock as any)[key] || 'Default'}</span>
-                        </div>
-                        <select
-                          value={(designBlock as any)[key] || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            loadGoogleFont(val);
-                            handleFieldChange(designBlock.id, { [key]: val });
-                            markDirtyAndSave();
-                          }}
-                          className="w-full border rounded-xl px-3 py-2 text-xs outline-none cursor-pointer transition focus:border-indigo-400"
-                          style={{
-                            backgroundColor: 'var(--color-bg-secondary)',
-                            color: 'var(--color-text-primary)',
-                            borderColor: 'var(--color-border)',
-                            fontFamily: (designBlock as any)[key] || 'inherit'
-                          }}
-                        >
-                          <option value="">Default (system font)</option>
-                          {GOOGLE_FONTS.map(f => (
-                            <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-                          ))}
-                        </select>
-                      </div>
+              {/* ── Section 3: Text Alignment & Transform ───────── */}
+              <div className="bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-4" style={{ borderColor: 'var(--color-border)' }}>
+                <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--color-text-primary)' }}>
+                  ↔ Alignment & Transform
+                </h2>
+
+                {/* Title alignment */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Title Alignment
+                  </label>
+                  <div className="flex gap-1">
+                    {(['left', 'center', 'right'] as const).map(align => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => { handleFieldChange(designBlock.id, { titleAlign: align }); markDirtyAndSave(); }}
+                        className="flex-1 py-1.5 rounded-lg border text-[10px] font-bold capitalize transition cursor-pointer"
+                        style={{
+                          borderColor: designBlock.titleAlign === align ? 'var(--color-accent)' : 'var(--color-border)',
+                          backgroundColor: designBlock.titleAlign === align ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'transparent',
+                          color: designBlock.titleAlign === align ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                        }}
+                      >
+                        {align}
+                      </button>
                     ))}
                   </div>
+                </div>
 
-                  <div className="border-t pt-5 space-y-2" style={{ borderColor: 'var(--color-border)' }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>Live Font Preview</p>
-                    <div 
-                      className="p-5 border rounded-xl space-y-3.5 bg-neutral-50/40 select-none" 
-                      style={{ 
-                        borderColor: 'var(--color-border)',
-                        fontFamily: designBlock.fontFamilyAll || 'inherit'
-                      }}
-                    >
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono">Form Title Preview</p>
-                        <h4 
-                          className="text-lg font-bold tracking-tight mt-0.5"
-                          style={{ fontFamily: designBlock.fontFamilyTitle || designBlock.fontFamilyAll || 'inherit', color: 'var(--color-text-primary)' }}
-                        >
-                          The Art of Digital Design & Layouts
-                        </h4>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono">Body / Labels Preview</p>
-                        <p 
-                          className="text-xs leading-relaxed mt-0.5"
-                          style={{ fontFamily: designBlock.fontFamilyBody || designBlock.fontFamilyAll || 'inherit', color: 'var(--color-text-secondary)' }}
-                        >
-                          This text displays how descriptions, labels, and standard inline helper messages will look when configured with chosen typography.
-                        </p>
-                      </div>
-
-                      <div className="pt-1.5">
-                        <p className="text-[10px] uppercase font-bold text-indigo-505 tracking-wider font-mono mb-1.5">Buttons Preview</p>
-                        <button
-                          type="button"
-                          className="px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs"
-                          style={{ 
-                            fontFamily: designBlock.fontFamilyButton || designBlock.fontFamilyAll || 'inherit',
-                            background: 'var(--accent-gradient)'
-                          }}
-                        >
-                          Submit Application
-                        </button>
-                      </div>
-                    </div>
+                {/* Body alignment */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Body Alignment
+                  </label>
+                  <div className="flex gap-1">
+                    {(['left', 'center', 'right', 'justify'] as const).map(align => (
+                      <button
+                        key={align}
+                        type="button"
+                        onClick={() => { handleFieldChange(designBlock.id, { textAlign: align }); markDirtyAndSave(); }}
+                        className="flex-1 py-1.5 rounded-lg border text-[10px] font-bold capitalize transition cursor-pointer"
+                        style={{
+                          borderColor: designBlock.textAlign === align ? 'var(--color-accent)' : 'var(--color-border)',
+                          backgroundColor: designBlock.textAlign === align ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'transparent',
+                          color: designBlock.textAlign === align ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                        }}
+                      >
+                        {align}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
+
+                {/* Text transform */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+                    Body Transform
+                  </label>
+                  <div className="flex gap-1">
+                    {(['none', 'uppercase', 'lowercase', 'capitalize'] as const).map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => { handleFieldChange(designBlock.id, { textTransform: t }); markDirtyAndSave(); }}
+                        className="flex-1 py-1.5 rounded-lg border text-[10px] font-bold capitalize transition cursor-pointer"
+                        style={{
+                          borderColor: designBlock.textTransform === t ? 'var(--color-accent)' : 'var(--color-border)',
+                          backgroundColor: designBlock.textTransform === t ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'transparent',
+                          color: designBlock.textTransform === t ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                          textTransform: t,
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section 4: Live Preview ──────────────────────── */}
+              <div className="bg-[var(--color-bg-card)] border rounded-2xl p-6 shadow-xs space-y-3" style={{ borderColor: 'var(--color-border)' }}>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>Live Preview</p>
+                <div
+                  className="p-5 border rounded-xl space-y-3.5 bg-neutral-50/40 select-none"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    fontFamily: designBlock.fontFamilyAll || 'inherit',
+                  }}
+                >
+                  <h4
+                    className="text-lg font-bold tracking-tight"
+                    style={{
+                      fontFamily: designBlock.fontFamilyTitle || designBlock.fontFamilyAll || 'inherit',
+                      color: (designBlock as any).titleColor || 'var(--color-text-primary)',
+                      textAlign: designBlock.titleAlign || 'left',
+                    }}
+                  >
+                    The Art of Digital Design & Layouts
+                  </h4>
+                  <p
+                    className="text-xs leading-relaxed"
+                    style={{
+                      fontFamily: designBlock.fontFamilyBody || designBlock.fontFamilyAll || 'inherit',
+                      color: (designBlock as any).bodyColor || 'var(--color-text-secondary)',
+                      textAlign: designBlock.textAlign || 'left',
+                      textTransform: designBlock.textTransform || 'none',
+                    }}
+                  >
+                    This displays how labels, body text, and descriptions look with your typography settings.
+                  </p>
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-xs font-bold rounded-xl shadow-xs"
+                    style={{
+                      fontFamily: designBlock.fontFamilyButton || designBlock.fontFamilyAll || 'inherit',
+                      color: (designBlock as any).textColor || '#ffffff',
+                      background: 'var(--accent-gradient)',
+                    }}
+                  >
+                    Submit Application
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         );
