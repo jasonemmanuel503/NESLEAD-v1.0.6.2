@@ -1,0 +1,6 @@
+{
+  "name": "NesLead",
+  "description": "An intelligent lead generation and assistant booking bot powered by AI, built for advanced website lead capture and team collaboration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
