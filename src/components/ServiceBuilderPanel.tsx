@@ -5664,48 +5664,98 @@ function FormPreview({
 
         {/* Premium Fields: video_embed */}
         {field.type === 'video_embed' && (() => {
-          const url = field.videoUrl || '';
-          let embedUrl = url;
-          if (url.includes('youtube.com/watch?v=')) {
-            const id = url.split('v=')[1]?.split('&')[0];
-            embedUrl = `https://www.youtube.com/embed/${id}`;
-          } else if (url.includes('youtu.be/')) {
-            const id = url.split('youtu.be/')[1]?.split('?')[0];
-            embedUrl = `https://www.youtube.com/embed/${id}`;
-          } else if (url.includes('vimeo.com/')) {
-            const id = url.split('vimeo.com/')[1]?.split('?')[0];
-            embedUrl = `https://player.vimeo.com/video/${id}`;
+          const url = field.videoUrl || field.videoEmbedUrl || '';
+          let embedUrl = '';
+          let isDirectVideo = false;
+
+          if (url) {
+            // YouTube: standard watch URL
+            if (url.includes('youtube.com/watch')) {
+              const id = new URLSearchParams(url.split('?')[1]).get('v');
+              if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+            }
+            // YouTube: short URL
+            else if (url.includes('youtu.be/')) {
+              const id = url.split('youtu.be/')[1]?.split('?')[0];
+              if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+            }
+            // YouTube: Shorts (youtube.com/shorts/{id})
+            else if (url.includes('youtube.com/shorts/')) {
+              const id = url.split('/shorts/')[1]?.split('?')[0];
+              if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+            }
+            // YouTube: Live (youtube.com/live/{id})
+            else if (url.includes('youtube.com/live/')) {
+              const id = url.split('/live/')[1]?.split('?')[0];
+              if (id) embedUrl = `https://www.youtube.com/embed/${id}`;
+            }
+            // YouTube: already embed URL
+            else if (url.includes('youtube.com/embed/')) {
+              embedUrl = url;
+            }
+            // Vimeo
+            else if (url.includes('vimeo.com/')) {
+              const id = url.split('vimeo.com/')[1]?.split('?')[0];
+              if (id) embedUrl = `https://player.vimeo.com/video/${id}`;
+            }
+            // Direct video file (MP4, WebM, OGG)
+            else if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
+              embedUrl = url;
+              isDirectVideo = true;
+            }
+            // Unknown URL — treat as direct video as fallback
+            else {
+              embedUrl = url;
+              isDirectVideo = true;
+            }
           }
+
+          // Aspect ratio map
+          const aspectRatioMap: Record<string, string> = {
+            '16:9': '16/9',
+            '4:3': '4/3',
+            '1:1': '1/1',
+            '9:16': '9/16',
+          };
+          const aspectRatio = aspectRatioMap[field.videoEmbedAspectRatio || '16:9'] || '16/9';
+
           return (
             <div className="space-y-1.5 font-sans">
-              {field.label && <label className="font-bold flex items-center gap-1.5 mb-1" style={{ color: 'var(--color-text-primary)' }}><Video className="w-4 h-4 text-indigo-500" /> {field.label}</label>}
+              {field.label && (
+                <label className="font-bold flex items-center gap-1.5 mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                  <Video className="w-4 h-4 text-indigo-500" /> {field.label}
+                </label>
+              )}
               <div
                 className="relative w-full rounded-xl overflow-hidden bg-black shadow"
-                style={{ aspectRatio: field.videoAspectRatio || '16/9' }}
+                style={{ aspectRatio }}
               >
                 {embedUrl ? (
-                  embedUrl.includes('embed') || embedUrl.includes('player.vimeo') ? (
-                    <iframe
-                      src={embedUrl}
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full border-0 absolute inset-0"
-                    />
-                  ) : (
+                  isDirectVideo ? (
                     <video
                       src={embedUrl}
                       controls
+                      autoPlay={field.videoEmbedAutoplay}
                       className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <iframe
+                      src={embedUrl + (field.videoEmbedAutoplay ? (embedUrl.includes('?') ? '&autoplay=1' : '?autoplay=1') : '')}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0 absolute inset-0"
                     />
                   )
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-xs text-neutral-400 space-y-2">
                     <Video className="w-6 h-6 text-neutral-500 animate-pulse" />
-                    <span>Video container placeholder</span>
+                    <span>Paste a YouTube, Vimeo, or direct video URL in the config panel</span>
                   </div>
                 )}
               </div>
-              {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
+              {field.helpText && (
+                <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>
+              )}
             </div>
           );
         })()}
@@ -7246,105 +7296,130 @@ export default function ServiceBuilderPanel({
           transition: 'outline 0.15s ease, background-color 0.15s ease',
         }}
       >
-        {/* Clean full-width editor interface with dynamic canvas sizing constraints */}
-        {/* COMMENT: We utilize width and minHeight as intent dimensions for precision, while max-width of 100% ensures proper responsiveness. */}
-        <div 
-          className="w-full transition-all duration-300 font-sans mx-auto max-w-full rounded-2xl p-6 border animate-none"
-          style={{
-            width: formCanvas ? `${formCanvas.width}${formCanvas.unit}` : '100%',
-            minHeight: formCanvas ? `${formCanvas.height}${formCanvas.unit}` : '500px',
-            maxWidth: '100%',
-            margin: '0 auto',
-            borderColor: 'var(--color-border)',
-            backgroundColor: 'var(--color-bg-card)',
-          }}
-        >
-
-          {fields.length === 0 ? (
-            <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4 animate-none"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
-              <Plus className="w-8 h-8 mb-3 opacity-25 text-indigo-400" />
-              <p className="text-sm font-bold font-sans" style={{ color: 'var(--color-text-primary)' }}>Drop fields here</p>
-              <p className="text-xs mt-1 max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                Drag from the left palette, or tap a basic field on mobile to customize your flow.
-              </p>
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={() => setBrowseTemplatesOpen(true)}
-                  className="px-4 py-2 text-white text-xs font-extrabold rounded-xl hover:scale-105 transition flex items-center gap-1.5 cursor-pointer shadow-md"
-                  style={{ background: 'var(--accent-gradient)' }}
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> Start from Template
-                </button>
-              </div>
-            </div>
-          ) : (
-            <AnimatePresence>
-              <div className="space-y-0">
-                {/* Drop zone BEFORE first field */}
-                <DropZoneLine
-                  index={0}
-                  isActive={dragOverIndex === 0}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(0); }}
-                  onDrop={(e) => handleFieldDrop(e, 0)}
-                />
-                {fields.map((field, index) => (
-                  <React.Fragment key={field.id}>
-                    <FieldEditor
-                      field={field}
-                      index={index}
-                      fields={fields}
-                      total={fields.length}
-                      onChange={handleFieldChange}
-                      onDelete={handleFieldDelete}
-                      onMoveUp={handleMoveUp}
-                      onMoveDown={handleMoveDown}
-                      isDragOver={false}
-                      onDragStart={handleFieldDragStart}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => { e.stopPropagation(); }}
-                      onDragEnd={handleFieldDragEnd}
-                      markDirtyAndSave={markDirtyAndSave}
-                      onDesignChange={handleDesignChange}
-                      designState={{
-                        bgMode,
-                        bgSolidColor,
-                        bgGradientColor1,
-                        bgGradientColor2,
-                        bgGradientAngle,
-                        bgImageUrl,
-                        formLogoUrl,
-                        formLogoPosition,
-                        computedFormBg,
-                        logoUploading,
-                        logoUploadError,
-                        handleFormLogoUpload,
-                        bgSolidOpacity,
-                        bgGradientOpacity,
-                        bgImageOverlayColor,
-                        bgImageOverlayOpacity,
-                        bgGlassEnabled,
-                        bgGlassBlur,
-                        bgGlassBorderRadius,
-                        bgGlassBorderColor,
-                        bgGlassBorderWidth,
-                        bgGlassColorStops,
-                        bgGlassAngle,
-                      }}
-                    />
-                    {/* Drop zone AFTER each field */}
-                    <DropZoneLine
-                      index={index + 1}
-                      isActive={dragOverIndex === index + 1}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(index + 1); }}
-                      onDrop={(e) => handleFieldDrop(e, index + 1)}
-                    />
-                  </React.Fragment>
-                ))}
-              </div>
-            </AnimatePresence>
+        <div className="relative">
+          {/* Canvas resize handle — top-right corner */}
+          {formCanvas && (
+            <button
+              type="button"
+              title="Resize canvas"
+              onClick={() => {
+                // Pre-populate modal with current canvas dimensions and reopen
+                setPendingCanvas({ ...formCanvas });
+                setPendingFormName(formName);
+                setShowCanvasSetupModal(true);
+              }}
+              className="absolute -top-3 -right-3 z-30 p-1.5 rounded-full border shadow-sm cursor-pointer transition hover:scale-110 active:scale-95 animate-none flex items-center justify-center bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-indigo-500 hover:text-indigo-600 dark:text-indigo-400"
+              style={{
+                width: '28px',
+                height: '28px'
+              }}
+            >
+              {/* Use the Expand or Maximize2 icon from lucide-react */}
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
           )}
+
+          <div
+            className="form-canvas-scope transition-all duration-300 font-sans mx-auto rounded-2xl p-6 border animate-none"
+            style={{
+              width: formCanvas ? `${formCanvas.width}${formCanvas.unit}` : '100%',
+              minHeight: formCanvas ? `${formCanvas.height}${formCanvas.unit}` : '500px',
+              // REMOVED: maxWidth: '100%'  — this was capping the canvas at viewport width.
+              // The canvas outer scroll container (overflow-y-auto on the parent div) 
+              // already handles overflow; canvases wider than viewport scroll horizontally.
+              maxWidth: formCanvas ? 'none' : '100%',
+              margin: '0 auto',
+              borderColor: 'var(--color-border)',
+              backgroundColor: 'var(--color-bg-card)',
+            }}
+          >
+
+            {fields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4 animate-none"
+                style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
+                <Plus className="w-8 h-8 mb-3 opacity-25 text-indigo-400" />
+                <p className="text-sm font-bold font-sans" style={{ color: 'var(--color-text-primary)' }}>Drop fields here</p>
+                <p className="text-xs mt-1 max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                  Drag from the left palette, or tap a basic field on mobile to customize your flow.
+                </p>
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    onClick={() => setBrowseTemplatesOpen(true)}
+                    className="px-4 py-2 text-white text-xs font-extrabold rounded-xl hover:scale-105 transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                    style={{ background: 'var(--accent-gradient)' }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Start from Template
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <AnimatePresence>
+                <div className="space-y-0">
+                  {/* Drop zone BEFORE first field */}
+                  <DropZoneLine
+                    index={0}
+                    isActive={dragOverIndex === 0}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(0); }}
+                    onDrop={(e) => handleFieldDrop(e, 0)}
+                  />
+                  {fields.map((field, index) => (
+                    <React.Fragment key={field.id}>
+                      <FieldEditor
+                        field={field}
+                        index={index}
+                        fields={fields}
+                        total={fields.length}
+                        onChange={handleFieldChange}
+                        onDelete={handleFieldDelete}
+                        onMoveUp={handleMoveUp}
+                        onMoveDown={handleMoveDown}
+                        isDragOver={false}
+                        onDragStart={handleFieldDragStart}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={(e) => { e.stopPropagation(); }}
+                        onDragEnd={handleFieldDragEnd}
+                        markDirtyAndSave={markDirtyAndSave}
+                        onDesignChange={handleDesignChange}
+                        designState={{
+                          bgMode,
+                          bgSolidColor,
+                          bgGradientColor1,
+                          bgGradientColor2,
+                          bgGradientAngle,
+                          bgImageUrl,
+                          formLogoUrl,
+                          formLogoPosition,
+                          computedFormBg,
+                          logoUploading,
+                          logoUploadError,
+                          handleFormLogoUpload,
+                          bgSolidOpacity,
+                          bgGradientOpacity,
+                          bgImageOverlayColor,
+                          bgImageOverlayOpacity,
+                          bgGlassEnabled,
+                          bgGlassBlur,
+                          bgGlassBorderRadius,
+                          bgGlassBorderColor,
+                          bgGlassBorderWidth,
+                          bgGlassColorStops,
+                          bgGlassAngle,
+                        }}
+                      />
+                      {/* Drop zone AFTER each field */}
+                      <DropZoneLine
+                        index={index + 1}
+                        isActive={dragOverIndex === index + 1}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(index + 1); }}
+                        onDrop={(e) => handleFieldDrop(e, index + 1)}
+                      />
+                    </React.Fragment>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -8820,7 +8895,8 @@ export default function ServiceBuilderPanel({
                       <input 
                         type="number" 
                         value={pendingCanvas.width}
-                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, width: Math.max(1, Number(e.target.value)) }))}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, width: Math.max(1, Number(e.target.value)), preset: 'custom' }))}
+                        onBlur={() => setPendingCanvas(prev => ({ ...prev, preset: 'custom' }))}
                         className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs animate-none" 
                         style={inputStyle}
                       />
@@ -8830,7 +8906,8 @@ export default function ServiceBuilderPanel({
                       <input 
                         type="number" 
                         value={pendingCanvas.height}
-                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, height: Math.max(1, Number(e.target.value)) }))}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, height: Math.max(1, Number(e.target.value)), preset: 'custom' }))}
+                        onBlur={() => setPendingCanvas(prev => ({ ...prev, preset: 'custom' }))}
                         className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs animate-none" 
                         style={inputStyle}
                       />
@@ -8839,7 +8916,7 @@ export default function ServiceBuilderPanel({
                       <label className="text-[10px] font-bold uppercase tracking-wider block mb-1 text-neutral-500">Unit</label>
                       <select 
                         value={pendingCanvas.unit}
-                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, unit: e.target.value as any }))}
+                        onChange={(e) => setPendingCanvas(prev => ({ ...prev, unit: e.target.value as any, preset: 'custom' }))}
                         className="w-full border rounded-lg px-2 py-1.5 outline-none font-semibold text-xs bg-transparent" 
                         style={inputStyle}
                       >
@@ -8867,15 +8944,17 @@ export default function ServiceBuilderPanel({
                   onClick={() => {
                     setFormName(pendingFormName);
                     setFormCanvas(pendingCanvas);
-                    setSelectedProgramId(null);
+                    // Only reset the form if this is a brand new form (no existing schema)
+                    if (!selectedProgramId && fields.length === 0) {
+                      setSelectedProgramId(null);
+                    }
                     setShowCanvasSetupModal(false);
-                    // Trigger instant auto-save to establish database record
                     setTimeout(() => markDirtyAndSave(), 50);
                   }}
                   className="px-5 py-2.5 rounded-xl text-xs font-black text-white cursor-pointer transition flex items-center gap-1 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   style={{ background: 'var(--accent-gradient)' }}
                 >
-                  Create Form
+                  {fields.length > 0 ? 'Apply Canvas Size' : 'Create Form'}
                 </button>
               </div>
             </motion.div>

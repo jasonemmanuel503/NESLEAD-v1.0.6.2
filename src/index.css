@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+/* ── Scrollbar suppression for builder panels ─────────────────────────── */
+/* Applied only to specific containers via the .sb-hide-scrollbar class.   */
+/* NOT applied globally — global suppression breaks keyboard accessibility.  */
+.sb-hide-scrollbar {
+  scrollbar-width: none;          /* Firefox */
+}
+.sb-hide-scrollbar::-webkit-scrollbar {
+  display: none;                  /* Chromium / Safari */
+}
+
+/* ── Preview device simulator — hide OS scrollbar, keep scroll ────────── */
+.preview-device-scroll {
+  scrollbar-width: none;
+  overflow-y: auto;
+}
+.preview-device-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Scroll hint — bottom fade gradient signals more content below ──────  */
+/* Wrap a scrollable container in .sb-scroll-hint and the gradient        */
+/* appears whenever content overflows, disappearing at the bottom.         */
+.sb-scroll-hint {
+  position: relative;
+}
+.sb-scroll-hint::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-bg-card, #fff) 90%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.sb-scroll-hint:not([data-at-bottom="true"])::after {
+  opacity: 1;
+}
+
+/* ── Form canvas scoped placeholder opacity ──────────────────────────── */
+/* Scoped to .form-canvas-scope so it never bleeds into the builder UI.  */
+.form-canvas-scope ::placeholder {
+  opacity: 0.45;
+}

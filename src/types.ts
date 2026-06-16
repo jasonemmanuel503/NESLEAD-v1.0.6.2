@@ -161,6 +161,7 @@ export interface FormField {
   scaleMin?: number;          // for scale
   scaleMax?: number;          // for scale
   conditions?: ConditionalRule[]; // conditional logic rules
+  hidden?: boolean; // hides this field from preview/submission but keeps it in schema
   scaleStyle?: 'numbers' | 'stars' | 'emoji';
   priceMode?: 'static' | 'slider' | 'manual';
   priceCurrency?: string;
@@ -376,7 +377,10 @@ export interface FormField {
   // logo_mark
   logoMarkUrl?: string;
   logoMarkWidth?: number; // px
-  logoMarkPosition?: 'top-left' | 'top-center' | 'top-right';
+  logoMarkPosition?: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  logoMarkOffsetX?: number;  // px offset from the preset anchor, default 0
+  logoMarkOffsetY?: number;  // px offset from the preset anchor, default 0
+  logoMarkSnapGrid?: boolean; // snap position to nearest 8px grid when true
   logoMarkLinkUrl?: string; // optional click-through link
 
   // missing form builder panel specific keys for linter satisfaction
