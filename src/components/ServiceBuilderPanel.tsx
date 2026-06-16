@@ -732,6 +732,23 @@ function FieldEditor({
   const [isEditingText, setIsEditingText] = useState(false);
   const [columnError, setColumnError] = useState<string | null>(null);
 
+  // Keyboard shortcuts: Ctrl+D = duplicate, Ctrl+H = toggle hidden
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (!expanded) return; // only fire when this card is expanded
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        if (onDuplicate) onDuplicate(field.id);
+      }
+      if (e.ctrlKey && e.key === 'h') {
+        e.preventDefault();
+        onChange(field.id, { hidden: !field.hidden });
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [expanded, field.id, field.hidden, onChange, onDuplicate]);
+
   const {
     bgMode = 'solid',
     bgSolidColor = '#ffffff',
@@ -794,7 +811,9 @@ function FieldEditor({
       onDragEnd={onDragEnd}
       className="border rounded-xl transition-all"
       style={{
-        borderColor: isDragOver ? '#818cf8' : 'var(--color-border)',
+        opacity: field.hidden ? 0.55 : 1,
+        borderStyle: field.hidden ? 'dashed' : 'solid',
+        borderColor: isDragOver ? '#818cf8' : (field.hidden ? 'var(--color-warning, #f59e0b)' : 'var(--color-border)'),
         backgroundColor: 'var(--color-bg-card)',
         boxShadow: isDragOver ? '0 0 0 2px #818cf840' : 'none',
       }}
@@ -844,6 +863,33 @@ function FieldEditor({
             {field.required ? 'Required' : 'Optional'}
           </button>
         )}
+
+        {/* Eye toggle — hide/show field in preview and submission */}
+        {!isStructural && field.type !== 'form_design_block' && (
+          <button
+            type="button"
+            title={field.hidden ? 'Field is hidden — click to show' : 'Hide this field'}
+            onClick={() => onChange(field.id, { hidden: !field.hidden })}
+            className="shrink-0 p-1 rounded-lg cursor-pointer transition hover:bg-amber-50"
+            style={{ color: field.hidden ? 'var(--color-warning, #f59e0b)' : 'var(--color-text-secondary)' }}
+          >
+            {field.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        )}
+
+        {/* Duplicate button — wires the existing onDuplicate prop */}
+        {!isStructural && field.type !== 'form_design_block' && onDuplicate && (
+          <button
+            type="button"
+            title="Duplicate field (Ctrl+D)"
+            onClick={() => onDuplicate(field.id)}
+            className="shrink-0 p-1 rounded-lg cursor-pointer transition hover:bg-indigo-50"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        )}
+
         <button type="button" onClick={() => setExpanded(v => !v)}
           className="shrink-0 p-1 rounded-lg cursor-pointer transition hover:bg-neutral-100"
           style={{ color: 'var(--color-text-secondary)' }}
@@ -4622,6 +4668,7 @@ function FormPreview({
   };
 
   const renderField = (field: FormField) => {
+    if (field.hidden) return null;
     const isAbsolute = field.positionMode === 'absolute';
     const isSelected = selectedFieldId === field.id;
 
@@ -5588,7 +5635,9 @@ function FormPreview({
 
         {/* Premium Fields: progress_bar */}
         {field.type === 'progress_bar' && (() => {
-          const activeFields = fields.filter(f => !['form_title', 'divider', 'page_break', 'section_header', 'rich_text', 'progress_bar', 'header_image_banner', 'video_embed', 'shape_framed_image', 'logo_mark', 'form_design_block', 'single_column_row', 'two_column_row', 'three_column_row', 'accordion_section', 'tab_container', 'repeating_section'].includes(f.type));
+          const activeFields = fields.filter(f =>
+            !['form_title', 'divider', 'page_break', 'section_header', 'rich_text', 'progress_bar', 'header_image_banner', 'video_embed', 'shape_framed_image', 'logo_mark', 'form_design_block', 'single_column_row', 'two_column_row', 'three_column_row', 'accordion_section', 'tab_container', 'repeating_section'].includes(f.type) && !f.hidden
+          );
           const completedCount = activeFields.filter(f => {
             const val = values[f.id];
             if (val === undefined || val === null || val === '') return false;
@@ -7374,6 +7423,26 @@ export default function ServiceBuilderPanel({
                         onDelete={handleFieldDelete}
                         onMoveUp={handleMoveUp}
                         onMoveDown={handleMoveDown}
+                        onDuplicate={(fieldId) => {
+                          const srcIndex = fields.findIndex(f => f.id === fieldId);
+                          if (srcIndex === -1) return;
+                          const src = fields[srcIndex];
+                          const copyLabel = src.label.endsWith(' (Copy)') ? src.label : `${src.label} (Copy)`;
+                          const dup = { ...src, id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, label: copyLabel };
+                          setFields(prev => {
+                            const copy = [...prev];
+                            copy.splice(srcIndex + 1, 0, dup);
+                            return copy;
+                          });
+                          setTimeout(() => {
+                            const btn = document.querySelector('button[title="Save Draft"]');
+                            if (btn && (btn as HTMLButtonElement).click) {
+                              (btn as HTMLButtonElement).click();
+                            } else {
+                              markDirtyAndSave();
+                            }
+                          }, 50);
+                        }}
                         isDragOver={false}
                         onDragStart={handleFieldDragStart}
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
