@@ -1771,6 +1771,25 @@ function FieldEditor({
                       ))}
                     </div>
                   </div>
+
+                  {/* Alignment for rich_text and section_header */}
+                  {(field.type === 'rich_text' || field.type === 'section_header') && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] w-20 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Alignment:</span>
+                      <div className="flex gap-1.5 flex-1 w-full">
+                        {(['left', 'center', 'right', 'justify'] as const).map(align => (
+                          <button key={align} type="button"
+                            onClick={() => { onChange(field.id, { textAlign: align }); markDirtyAndSave(); }}
+                            className="flex-1 px-2 py-1 text-[10px] font-bold border rounded-lg transition cursor-pointer capitalize"
+                            style={(field.textAlign || 'left') === align
+                              ? { background: 'var(--accent-gradient)', color: '#fff', borderColor: 'transparent' }
+                              : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                            {align}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3396,11 +3415,30 @@ function FieldEditor({
               )}
 
               {['short_text', 'long_text'].includes(field.type) && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Max Characters</label>
-                  <input type="number" value={field.maxLength || ''} onChange={(e) => onChange(field.id, { maxLength: e.target.value ? Number(e.target.value) : undefined }, true)}
-                    onBlur={() => markDirtyAndSave()}
-                    placeholder="e.g. 500" className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs" style={inputStyle} />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Max Characters</label>
+                    <input type="number" value={field.maxLength || ''} onChange={(e) => onChange(field.id, { maxLength: e.target.value ? Number(e.target.value) : undefined }, true)}
+                      onBlur={() => markDirtyAndSave()}
+                      placeholder="e.g. 500" className="w-full border rounded-lg px-2.5 py-1.5 outline-none font-semibold text-xs" style={inputStyle} />
+                  </div>
+
+                  {/* Alignment */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] w-20 shrink-0 font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Alignment:</span>
+                    <div className="flex gap-1.5 flex-1 w-full">
+                      {(['left', 'center', 'right', 'justify'] as const).map(align => (
+                        <button key={align} type="button"
+                          onClick={() => { onChange(field.id, { textAlign: align }); markDirtyAndSave(); }}
+                          className="flex-1 px-2 py-1 text-[10px] font-bold border rounded-lg transition cursor-pointer capitalize"
+                          style={(field.textAlign || 'left') === align
+                            ? { background: 'var(--accent-gradient)', color: '#fff', borderColor: 'transparent' }
+                            : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                          {align}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -4509,6 +4547,7 @@ function FormPreview({
     borderColor: 'var(--color-border)',
     backgroundColor: 'var(--color-bg-card)',
     color: 'var(--color-text-primary)',
+    colorScheme: 'light dark',
   };
 
   const getBorderStyle = (field: FormField): React.CSSProperties => {
@@ -4697,6 +4736,7 @@ function FormPreview({
             letterSpacing: '0.05em',
             lineHeight: 1.2,
             display: 'block',
+            textAlign: field.textAlign || 'left',
           };
           const content = field.label;
           const tag = field.textTag || 'h4';
@@ -4712,7 +4752,7 @@ function FormPreview({
               {tag === 'p' && <p style={style}>{content}</p>}
               {tag === 'span' && <span style={style}>{content}</span>}
               {field.helpText && (
-                <p className="text-[11px] mt-1 leading-relaxed animate-fade-in" style={{ color: 'var(--color-text-secondary)', fontSize: field.textFontSize ? `${field.textFontSize}px` : undefined }}>
+                <p className="text-[11px] mt-1 leading-relaxed animate-fade-in" style={{ color: 'var(--color-text-secondary)', fontSize: field.textFontSize ? `${field.textFontSize}px` : undefined, textAlign: field.textAlign || 'left' }}>
                   {field.helpText}
                 </p>
               )}
@@ -4732,6 +4772,7 @@ function FormPreview({
             textTransform: (field.textTransform && field.textTransform !== 'none') ? field.textTransform : undefined,
             display: 'block',
             lineHeight: 1.4,
+            textAlign: field.textAlign || 'left',
           };
           const content = field.label;
           const tag = field.textTag || 'p';
@@ -4747,7 +4788,7 @@ function FormPreview({
               {tag === 'p' && <p style={style}>{content}</p>}
               {tag === 'span' && <span style={style}>{content}</span>}
               {field.helpText && (
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)', textAlign: field.textAlign || 'left' }}>
                   {field.helpText}
                 </p>
               )}
@@ -5797,7 +5838,7 @@ function FormPreview({
         {/* Basic: text-like inputs */}
         {['short_text', 'phone', 'email', 'number'].includes(field.type) && (
           <div className="space-y-1.5">
-            <label className="font-bold block" style={{ color: 'var(--color-text-primary)' }}>
+            <label className="font-bold block" style={{ color: 'var(--color-text-primary)', textAlign: field.textAlign || 'left' }}>
               {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
             <input
@@ -5809,7 +5850,7 @@ function FormPreview({
               className="w-full border rounded-xl px-3 py-2.5 text-xs outline-none transition focus:ring-2 font-sans"
               style={{ ...fieldInputStyle, ...getBorderStyle(field), '--tw-ring-color': 'var(--color-accent)' } as any}
             />
-            {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
+            {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)', textAlign: field.textAlign || 'left' }}>{field.helpText}</p>}
           </div>
         )}
 
@@ -5834,7 +5875,7 @@ function FormPreview({
         {/* Basic: long text */}
         {field.type === 'long_text' && (
           <div className="space-y-1.5">
-            <label className="font-bold block" style={{ color: 'var(--color-text-primary)' }}>
+            <label className="font-bold block" style={{ color: 'var(--color-text-primary)', textAlign: field.textAlign || 'left' }}>
               {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
             <textarea
@@ -5846,7 +5887,7 @@ function FormPreview({
               className="w-full border rounded-xl px-3 py-2.5 text-xs outline-none transition focus:ring-2 font-sans"
               style={{ ...fieldInputStyle, ...getBorderStyle(field), '--tw-ring-color': 'var(--color-accent)' } as any}
             />
-            {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
+            {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)', textAlign: field.textAlign || 'left' }}>{field.helpText}</p>}
           </div>
         )}
 
@@ -5861,7 +5902,7 @@ function FormPreview({
               value={values[field.id] || ''}
               onChange={(e) => handleValue(field.id, e.target.value)}
               className="w-full border rounded-xl px-3 py-2.5 text-xs outline-none transition focus:ring-2 font-sans"
-              style={{ ...fieldInputStyle, ...getBorderStyle(field), '--tw-ring-color': 'var(--color-accent)' } as any}
+              style={{ ...fieldInputStyle, ...getBorderStyle(field), '--tw-ring-color': 'var(--color-accent)', colorScheme: 'light' } as any}
             />
             {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
           </div>
@@ -5885,7 +5926,7 @@ function FormPreview({
                   <option key={i} value={opt}>{opt}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none opacity-55 text-neutral-400" />
+              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none" style={{ color: 'var(--color-accent)' }} />
             </div>
             {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
           </div>

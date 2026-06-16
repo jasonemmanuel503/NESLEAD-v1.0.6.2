@@ -277,6 +277,8 @@ export interface FormField {
   dividerThickness?: number;  // px, default 1, range 1–20
   dividerHeight?: number;     // px, for vertical divider explicit height control
 
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+
   // time_picker
   timeFormat?: '12h' | '24h';
   timeStep?: number; // minutes, e.g. 15, 30, 60
