@@ -178,6 +178,7 @@ function createField(type: FormFieldType, defaultLabel: string): FormField {
     return {
       ...base,
       columnFields: [[]],
+      columnIds: [`col-${Date.now()}-0`],
     };
   }
 
@@ -185,6 +186,10 @@ function createField(type: FormFieldType, defaultLabel: string): FormField {
     return {
       ...base,
       columnFields: [[], []],
+      columnIds: [
+        `col-${Date.now()}-0`,
+        `col-${Date.now()}-1`,
+      ],
     };
   }
 
@@ -192,6 +197,11 @@ function createField(type: FormFieldType, defaultLabel: string): FormField {
     return {
       ...base,
       columnFields: [[], [], []],
+      columnIds: [
+        `col-${Date.now()}-0`,
+        `col-${Date.now()}-1`,
+        `col-${Date.now()}-2`,
+      ],
     };
   }
 
@@ -708,6 +718,7 @@ function FieldEditor({
 }: FieldEditorProps) {
   const [expanded, setExpanded] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
+  const [columnError, setColumnError] = useState<string | null>(null);
 
   const {
     bgMode = 'solid',
@@ -747,7 +758,7 @@ function FieldEditor({
   const hasStyling = ['short_text', 'long_text', 'phone', 'email', 'number', 'password', 'dropdown', 'date', 'time_picker', 'date_range', 'address_autocomplete', 'color_picker', 'signature_pad', 'otp_input', 'country_selector', 'repeating_section', 'accordion_section', 'tab_container'].includes(field.type);
   
   const isColumnRow = field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row';
-  const columnCount = field.type === 'three_column_row' ? 3 : field.type === 'two_column_row' ? 2 : field.type === 'single_column_row' ? 1 : 0;
+  const columnCount = field.columnFields ? field.columnFields.length : (field.type === 'three_column_row' ? 3 : field.type === 'two_column_row' ? 2 : field.type === 'single_column_row' ? 1 : 0);
 
   return (
     <motion.div
@@ -846,110 +857,162 @@ function FieldEditor({
         </button>
       </div>
 
-      {(field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row') && (
-        <div className={`grid gap-3 p-3 border-t bg-neutral-50/50 ${
-          field.type === 'single_column_row' ? 'grid-cols-1' : field.type === 'two_column_row' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'
-        }`} style={{ borderColor: 'var(--color-border)' }}>
-          {(field.columnFields || (field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []])).map((colFields, colIdx) => {
-            const defaultColData = field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []];
-            return (
-              <div
-                key={colIdx}
-                className="border-2 border-dashed rounded-xl p-2.5 space-y-2 transition bg-white"
-                style={{
-                  borderColor: 'var(--color-border)',
-                  height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
-                  minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
-                  width: field.columnWidths?.[colIdx] || undefined,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
-                  overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
-                }}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.style.borderColor = 'var(--color-accent)'; }}
-                onDragLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.style.borderColor = 'var(--color-border)';
-                  const type = e.dataTransfer.getData('palette-type') as FormFieldType;
-                  const defaultLabel = e.dataTransfer.getData('palette-default-label');
-                  if (type && type !== 'single_column_row' && type !== 'two_column_row' && type !== 'three_column_row' && type !== 'form_design_block') {
-                    const newColFields = [...(field.columnFields || defaultColData)];
-                    newColFields[colIdx] = [...(newColFields[colIdx] || []), createField(type, defaultLabel)];
-                    onChange(field.id, { columnFields: newColFields });
-                    markDirtyAndSave();
-                  }
-                }}
-              >
-                {colFields.length === 0 && (
-                  <div className="flex items-center justify-center h-full py-4">
-                    <span className="text-[10px] text-center font-semibold text-neutral-400">Drop fields here</span>
-                  </div>
-                )}
-                {colFields.map((cf, cfIdx) => (
-                  <FieldEditor
-                    key={cf.id || cfIdx}
-                    field={cf}
-                    index={cfIdx}
-                    fields={colFields}
-                    total={colFields.length}
-                    totalCount={colFields.length}
-                    onChange={(fieldId, updates, skipSave) => {
-                      const newColFields = [...(field.columnFields || defaultColData)];
-                      newColFields[colIdx] = newColFields[colIdx].map(f => f.id === fieldId ? { ...f, ...updates } : f);
-                      onChange(field.id, { columnFields: newColFields }, skipSave);
-                    }}
-                    onDelete={(fieldId) => {
-                      const newColFields = [...(field.columnFields || defaultColData)];
-                      newColFields[colIdx] = newColFields[colIdx].filter(f => f.id !== fieldId);
-                      onChange(field.id, { columnFields: newColFields });
-                      markDirtyAndSave();
-                    }}
-                    onMoveUp={(idx) => {
-                      if (idx === 0) return;
-                      const newColFields = [...(field.columnFields || defaultColData)];
-                      const col = [...newColFields[colIdx]];
-                      [col[idx - 1], col[idx]] = [col[idx], col[idx - 1]];
-                      newColFields[colIdx] = col;
-                      onChange(field.id, { columnFields: newColFields });
-                      markDirtyAndSave();
-                    }}
-                    onMoveDown={(idx) => {
-                      const newColFields = [...(field.columnFields || defaultColData)];
-                      const col = [...newColFields[colIdx]];
-                      if (idx >= col.length - 1) return;
-                      [col[idx], col[idx + 1]] = [col[idx + 1], col[idx]];
-                      newColFields[colIdx] = col;
-                      onChange(field.id, { columnFields: newColFields });
-                      markDirtyAndSave();
-                    }}
-                    onDuplicate={(fieldId) => {
-                      const newColFields = [...(field.columnFields || defaultColData)];
-                      const srcIndex = newColFields[colIdx].findIndex(f => f.id === fieldId);
-                      if (srcIndex === -1) return;
-                      const src = newColFields[colIdx][srcIndex];
-                      const copyLabel = src.label.endsWith(' (Copy)') ? src.label : `${src.label} (Copy)`;
-                      const dup = { ...src, id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, label: copyLabel };
-                      newColFields[colIdx].splice(srcIndex + 1, 0, dup);
-                      onChange(field.id, { columnFields: newColFields });
-                      markDirtyAndSave();
-                    }}
-                    isDragOver={false}
-                    onDragStart={() => {}}
-                    onDragOver={() => {}}
-                    onDrop={() => {}}
-                    onDragEnd={() => {}}
-                    markDirtyAndSave={markDirtyAndSave}
-                    onDesignChange={onDesignChange}
-                    designState={designState}
-                  />
-                ))}
+      {(field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row') && (() => {
+        const defaultColData = field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []];
+        const colsArray = field.columnFields || defaultColData;
+        const colLen = colsArray.length;
+        const gridColsClass = colLen === 1 ? 'grid-cols-1' : colLen === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3';
+        
+        return (
+          <div className="border-t p-3 bg-neutral-50/50 space-y-2 animate-fade-in" style={{ borderColor: 'var(--color-border)' }}>
+            {columnError && (
+              <div className="text-center py-1.5 px-3 text-[10px] font-semibold text-red-500 bg-red-50 border border-red-200 rounded-lg animate-fade-in mb-1">
+                ⚠️ {columnError}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+            <div className={`grid gap-3 ${gridColsClass}`}>
+              {colsArray.map((colFields, colIdx) => {
+                const colKey = field.columnIds?.[colIdx] ?? `col-${field.id}-${colIdx}`;
+                
+                return (
+                  <div
+                    key={colKey}
+                    className="border-2 border-dashed rounded-xl p-2.5 space-y-2 transition bg-white"
+                    style={{
+                      borderColor: 'var(--color-border)',
+                      height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
+                      minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
+                      width: field.columnWidths?.[colIdx] || undefined,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
+                      overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.style.borderColor = 'var(--color-accent)'; }}
+                    onDragLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.style.borderColor = 'var(--color-border)';
+                      const type = e.dataTransfer.getData('palette-type') as FormFieldType;
+                      const defaultLabel = e.dataTransfer.getData('palette-default-label');
+                      if (type && type !== 'single_column_row' && type !== 'two_column_row' && type !== 'three_column_row' && type !== 'form_design_block') {
+                        const newColFields = [...colsArray];
+                        newColFields[colIdx] = [...(newColFields[colIdx] || []), createField(type, defaultLabel)];
+                        onChange(field.id, { columnFields: newColFields });
+                        markDirtyAndSave();
+                      }
+                    }}
+                  >
+                    {/* Column Header & Column Level Deletion */}
+                    <div className="flex items-center justify-between border-b pb-1.5 mb-1 bg-neutral-50 px-2 py-1 rounded" style={{ borderColor: 'var(--color-border)' }}>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                        Column {String.fromCharCode(65 + colIdx)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (colsArray.length <= 1) {
+                            setColumnError("A row must have at least 1 column.");
+                            setTimeout(() => setColumnError(null), 4000);
+                            return;
+                          }
+                          
+                          const newColFields = colsArray.filter((_, idx) => idx !== colIdx);
+                          
+                          const fallbackIds = Array.from({ length: colsArray.length }).map((_, i) => field.columnIds?.[i] ?? `col-${field.id}-${i}`);
+                          const newColIds = fallbackIds.filter((_, idx) => idx !== colIdx);
+                          
+                          const newColHeights = (field.columnHeights || []).filter((_, idx) => idx !== colIdx);
+                          const newColWidths = (field.columnWidths || []).filter((_, idx) => idx !== colIdx);
+                          const newColAlignments = (field.columnAlignments || []).filter((_, idx) => idx !== colIdx);
+                          
+                          onChange(field.id, {
+                            columnFields: newColFields,
+                            columnIds: newColIds,
+                            columnHeights: newColHeights.length > 0 ? newColHeights : undefined,
+                            columnWidths: newColWidths.length > 0 ? newColWidths : undefined,
+                            columnAlignments: newColAlignments.length > 0 ? newColAlignments : undefined,
+                          });
+                          markDirtyAndSave();
+                        }}
+                        className="p-1 hover:bg-red-50 hover:text-red-600 rounded text-neutral-400 transition cursor-pointer"
+                        title="Delete Column"
+                      >
+                        <Trash className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {colFields.length === 0 && (
+                      <div className="flex items-center justify-center h-full py-4">
+                        <span className="text-[10px] text-center font-semibold text-neutral-400">Drop fields here</span>
+                      </div>
+                    )}
+                    {colFields.map((cf, cfIdx) => (
+                      <FieldEditor
+                        key={cf.id || cfIdx}
+                        field={cf}
+                        index={cfIdx}
+                        fields={colFields}
+                        total={colFields.length}
+                        totalCount={colFields.length}
+                        onChange={(fieldId, updates, skipSave) => {
+                          const newColFields = [...colsArray];
+                          newColFields[colIdx] = newColFields[colIdx].map(f => f.id === fieldId ? { ...f, ...updates } : f);
+                          onChange(field.id, { columnFields: newColFields }, skipSave);
+                        }}
+                        onDelete={(fieldId) => {
+                          const newColFields = [...colsArray];
+                          newColFields[colIdx] = newColFields[colIdx].filter(f => f.id !== fieldId);
+                          onChange(field.id, { columnFields: newColFields });
+                          markDirtyAndSave();
+                        }}
+                        onMoveUp={(idx) => {
+                          if (idx === 0) return;
+                          const newColFields = [...colsArray];
+                          const col = [...newColFields[colIdx]];
+                          [col[idx - 1], col[idx]] = [col[idx], col[idx - 1]];
+                          newColFields[colIdx] = col;
+                          onChange(field.id, { columnFields: newColFields });
+                          markDirtyAndSave();
+                        }}
+                        onMoveDown={(idx) => {
+                          const newColFields = [...colsArray];
+                          const col = [...newColFields[colIdx]];
+                          if (idx >= col.length - 1) return;
+                          [col[idx], col[idx + 1]] = [col[idx + 1], col[idx]];
+                          newColFields[colIdx] = col;
+                          onChange(field.id, { columnFields: newColFields });
+                          markDirtyAndSave();
+                        }}
+                        onDuplicate={(fieldId) => {
+                          const newColFields = [...colsArray];
+                          const srcIndex = newColFields[colIdx].findIndex(f => f.id === fieldId);
+                          if (srcIndex === -1) return;
+                          const src = newColFields[colIdx][srcIndex];
+                          const copyLabel = src.label.endsWith(' (Copy)') ? src.label : `${src.label} (Copy)`;
+                          const dup = { ...src, id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, label: copyLabel };
+                          newColFields[colIdx].splice(srcIndex + 1, 0, dup);
+                          onChange(field.id, { columnFields: newColFields });
+                          markDirtyAndSave();
+                        }}
+                        isDragOver={false}
+                        onDragStart={() => {}}
+                        onDragOver={() => {}}
+                        onDrop={() => {}}
+                        onDragEnd={() => {}}
+                        markDirtyAndSave={markDirtyAndSave}
+                        onDesignChange={onDesignChange}
+                        designState={designState}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {field.type === 'accordion_section' && (
         <div className="p-3 border-t bg-neutral-50/50 space-y-3" style={{ borderColor: 'var(--color-border)' }}>
@@ -4589,29 +4652,33 @@ function FormPreview({
         })()}
 
         {/* Layout: column containers */}
-        {(field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row') && (
-          <div className={`grid gap-4 ${
-            field.type === 'single_column_row' ? 'grid-cols-1' : field.type === 'two_column_row' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'
-          }`}>
-            {(field.columnFields || (field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []])).map((colFields, colIdx) => (
-              <div
-                key={colIdx}
-                className="space-y-3"
-                style={{
-                  height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
-                  minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
-                  width: field.columnWidths?.[colIdx] || undefined,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
-                  overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
-                }}
-              >
-                {colFields.map((cf) => renderField(cf))}
-              </div>
-            ))}
-          </div>
-        )}
+        {(field.type === 'single_column_row' || field.type === 'two_column_row' || field.type === 'three_column_row') && (() => {
+          const defaultColData = field.type === 'single_column_row' ? [[]] : field.type === 'two_column_row' ? [[], []] : [[], [], []];
+          const colsArray = field.columnFields || defaultColData;
+          const colLen = colsArray.length;
+          const gridColsClass = colLen === 1 ? 'grid-cols-1' : colLen === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3';
+          return (
+            <div className={`grid gap-4 ${gridColsClass}`}>
+              {colsArray.map((colFields, colIdx) => (
+                <div
+                  key={field.columnIds?.[colIdx] ?? colIdx}
+                  className="space-y-3"
+                  style={{
+                    height: field.columnHeights?.[colIdx] != null ? `${field.columnHeights[colIdx]}px` : 'auto',
+                    minHeight: field.columnHeights?.[colIdx] != null ? undefined : '60px',
+                    width: field.columnWidths?.[colIdx] || undefined,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: field.columnAlignments?.[colIdx] ?? 'stretch',
+                    overflowY: field.columnHeights?.[colIdx] != null ? 'auto' : undefined,
+                  }}
+                >
+                  {colFields.map((cf) => renderField(cf))}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Advanced: price display */}
         {field.type === 'price_display' && (
