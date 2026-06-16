@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, Type, AlignLeft, List, CheckSquare,
   Circle, Calendar, Phone, Mail, Hash, Tag, Minus, MousePointer,
   FileText, BarChart3, Wand2, Check, Copy, Code, RefreshCw, Palette,
-  Lock, Upload, Maximize2, Loader2, Sparkles, Layout, Columns, LayoutGrid, Heading, TextCursor,
+  Lock, Upload, Maximize2, Minimize2, Loader2, Sparkles, Layout, Columns, LayoutGrid, Heading, TextCursor,
   Facebook, Twitter, Instagram, Linkedin, Youtube, MessageSquare, Share2, MessageCircle, Image as ImageIcon, ArrowRight,
   Square, SeparatorVertical,
   Clock, CalendarRange, MapPin, Pipette, PenTool, KeyRound, Calculator, Table,
@@ -6513,6 +6513,7 @@ export default function ServiceBuilderPanel({
   const [showPreview, setShowPreview] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
+  const [showFullscreenBuilder, setShowFullscreenBuilder] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [showEmbedModal, setShowEmbedModal] = useState(false);
   const [copiedOptionA, setCopiedOptionA] = useState(false);
@@ -7185,6 +7186,246 @@ export default function ServiceBuilderPanel({
 
   const filteredPaletteItems = PALETTE_ITEMS.filter(i => i.category === activePaletteCategory);
 
+  const renderBuilderLeftPalette = (hiddenOnMobile = true) => {
+    return (
+      <div className={`${hiddenOnMobile ? 'hidden sm:flex' : 'flex'} w-48 border-r flex-col shrink-0 overflow-y-auto`}
+        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
+        <div className="px-3 pt-3 pb-2 sticky top-0 z-10 animate-none" style={{ backgroundColor: 'var(--color-bg-card)' }}>
+          <p className="text-[10px] font-black uppercase tracking-wider mb-2 font-sans" style={{ color: 'var(--color-text-secondary)' }}>Field Types</p>
+          <div className="flex gap-1">
+            {(['basic', 'advanced', 'layout', 'design'] as const).map(cat => (
+              <button key={cat} type="button" onClick={() => setActivePaletteCategory(cat)}
+                className="flex-1 text-[9px] font-bold py-1 rounded-lg cursor-pointer transition capitalize font-sans"
+                style={{
+                  backgroundColor: activePaletteCategory === cat ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
+                  color: activePaletteCategory === cat ? '#fff' : 'var(--color-text-secondary)',
+                }}
+              >{cat}</button>
+            ))}
+          </div>
+        </div>
+        <div className="p-2 space-y-1 flex-1 font-sans">
+          {filteredPaletteItems.map((item) => (
+            <div key={item.type} draggable onDragStart={(e) => handlePaletteDragStart(e, item)}
+              onClick={() => {
+                if (item.type === 'form_design_block' && fields.some(f => f.type === 'form_design_block')) {
+                  return;
+                }
+                setFields(prev => [...prev, createField(item.type, item.defaultLabel)]);
+                markDirtyAndSave();
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-xl border cursor-pointer select-none transition hover:border-indigo-400 group"
+              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
+              title={`${item.description} (Drag to form, or click to add)`}
+            >
+              <span className="shrink-0 text-indigo-400 group-hover:text-indigo-500 transition">{item.icon}</span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold leading-none" style={{ color: 'var(--color-text-primary)' }}>{item.label}</p>
+                <p className="text-[9px] mt-0.5 leading-none truncate" style={{ color: 'var(--color-text-secondary)' }}>{item.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBuilderCanvas = () => {
+    return (
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-200"
+        onDragOver={handleCanvasDragOver}
+        onDragLeave={handleCanvasDragLeave}
+        onDrop={handleCanvasDrop}
+        onDragEnd={() => { setDragOverIndex(null); setIsDraggingOverCanvas(false); }}
+        style={{
+          outline: isDraggingOverCanvas ? '2.5px dashed var(--color-accent)' : '2.5px dashed transparent',
+          outlineOffset: '-4px',
+          borderRadius: '12px',
+          backgroundColor: isDraggingOverCanvas ? 'color-mix(in srgb, var(--color-accent) 5%, transparent)' : undefined,
+          transition: 'outline 0.15s ease, background-color 0.15s ease',
+        }}
+      >
+        {/* Clean full-width editor interface with dynamic canvas sizing constraints */}
+        {/* COMMENT: We utilize width and minHeight as intent dimensions for precision, while max-width of 100% ensures proper responsiveness. */}
+        <div 
+          className="w-full transition-all duration-300 font-sans mx-auto max-w-full rounded-2xl p-6 border animate-none"
+          style={{
+            width: formCanvas ? `${formCanvas.width}${formCanvas.unit}` : '100%',
+            minHeight: formCanvas ? `${formCanvas.height}${formCanvas.unit}` : '500px',
+            maxWidth: '100%',
+            margin: '0 auto',
+            borderColor: 'var(--color-border)',
+            backgroundColor: 'var(--color-bg-card)',
+          }}
+        >
+
+          {fields.length === 0 ? (
+            <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4 animate-none"
+              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
+              <Plus className="w-8 h-8 mb-3 opacity-25 text-indigo-400" />
+              <p className="text-sm font-bold font-sans" style={{ color: 'var(--color-text-primary)' }}>Drop fields here</p>
+              <p className="text-xs mt-1 max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                Drag from the left palette, or tap a basic field on mobile to customize your flow.
+              </p>
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={() => setBrowseTemplatesOpen(true)}
+                  className="px-4 py-2 text-white text-xs font-extrabold rounded-xl hover:scale-105 transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                  style={{ background: 'var(--accent-gradient)' }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Start from Template
+                </button>
+              </div>
+            </div>
+          ) : (
+            <AnimatePresence>
+              <div className="space-y-0">
+                {/* Drop zone BEFORE first field */}
+                <DropZoneLine
+                  index={0}
+                  isActive={dragOverIndex === 0}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(0); }}
+                  onDrop={(e) => handleFieldDrop(e, 0)}
+                />
+                {fields.map((field, index) => (
+                  <React.Fragment key={field.id}>
+                    <FieldEditor
+                      field={field}
+                      index={index}
+                      fields={fields}
+                      total={fields.length}
+                      onChange={handleFieldChange}
+                      onDelete={handleFieldDelete}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
+                      isDragOver={false}
+                      onDragStart={handleFieldDragStart}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => { e.stopPropagation(); }}
+                      onDragEnd={handleFieldDragEnd}
+                      markDirtyAndSave={markDirtyAndSave}
+                      onDesignChange={handleDesignChange}
+                      designState={{
+                        bgMode,
+                        bgSolidColor,
+                        bgGradientColor1,
+                        bgGradientColor2,
+                        bgGradientAngle,
+                        bgImageUrl,
+                        formLogoUrl,
+                        formLogoPosition,
+                        computedFormBg,
+                        logoUploading,
+                        logoUploadError,
+                        handleFormLogoUpload,
+                        bgSolidOpacity,
+                        bgGradientOpacity,
+                        bgImageOverlayColor,
+                        bgImageOverlayOpacity,
+                        bgGlassEnabled,
+                        bgGlassBlur,
+                        bgGlassBorderRadius,
+                        bgGlassBorderColor,
+                        bgGlassBorderWidth,
+                        bgGlassColorStops,
+                        bgGlassAngle,
+                      }}
+                    />
+                    {/* Drop zone AFTER each field */}
+                    <DropZoneLine
+                      index={index + 1}
+                      isActive={dragOverIndex === index + 1}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(index + 1); }}
+                      onDrop={(e) => handleFieldDrop(e, index + 1)}
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+            </AnimatePresence>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBuilderRightPreview = (isAlwaysVisible = false) => {
+    if (!isAlwaysVisible && !showPreview) return null;
+
+    return (
+      <motion.div
+        initial={isAlwaysVisible ? undefined : { width: 0, opacity: 0 }}
+        animate={isAlwaysVisible ? undefined : { width: 340, opacity: 1 }}
+        exit={isAlwaysVisible ? undefined : { width: 0, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className={`border-l overflow-y-auto shrink-0 hidden sm:flex flex-col`}
+        style={{ width: isAlwaysVisible ? '340px' : 'clamp(280px, 30%, 380px)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
+      >
+        <div className="px-4 py-3.5 sticky top-0 z-10 border-b animate-none" style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+          <p className="text-[10px] font-black uppercase tracking-wider font-sans" style={{ color: 'var(--color-text-secondary)' }}>Interactive Live Preview</p>
+          <p className="text-[9px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>Autosaved form design · Click 'Push to Preview' to sync changes</p>
+          
+          {/* Compact device toggles */}
+          <div className="flex items-center gap-1 mt-2.5 p-0.5 rounded-lg border shrink-0 bg-neutral-100 dark:bg-neutral-800" style={{ borderColor: 'var(--color-border)' }}>
+            {(['desktop', 'tablet', 'mobile'] as const).map((device) => {
+              const Icon = device === 'mobile' ? Smartphone : device === 'tablet' ? Tablet : Monitor;
+              const isActive = previewDevice === device;
+              const isDesktopOrTablet = device === 'desktop' || device === 'tablet';
+              return (
+                <button
+                  key={device}
+                  type="button"
+                  onClick={() => setPreviewDevice(device)}
+                  className="flex-1 py-1 rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 text-[10px] font-bold font-sans"
+                  style={{
+                    backgroundColor: isActive ? 'var(--color-accent)' : 'transparent',
+                    color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
+                  }}
+                  title={isDesktopOrTablet ? `${device === 'desktop' ? 'Desktop' : 'Tablet'} View (Best viewed in fullscreen preview)` : 'Mobile View'}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span className="capitalize">{device}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="p-4 flex flex-col items-center">
+          <div
+            className={`w-full transition-all duration-300 ${
+              previewDevice === 'mobile'
+                ? 'max-w-[375px] border-4 border-neutral-800 dark:border-neutral-700 rounded-xl p-2 bg-white dark:bg-neutral-900 shadow-lg'
+                : previewDevice === 'tablet'
+                ? 'max-w-[768px] border-4 border-neutral-600 dark:border-neutral-500 rounded-xl p-3 bg-white dark:bg-neutral-900 shadow-md'
+                : 'max-w-full'
+            }`}
+            style={previewDevice === 'desktop' ? { width: '100%' } : undefined}
+          >
+            <FormPreview
+              fields={previewFields}
+              serviceName={selectedProgramId ? name : formName}
+              fees={fees}
+              description={desc}
+              formBg={formBg}
+              formLogoUrl={formLogoUrl}
+              formLogoPosition={formLogoPosition}
+              formBgBlendMode={bgBlendMode}
+              formBgSize={bgSize}
+              formBgOpacity={bgOpacity}
+              hideTitle={true}
+              onChange={(fieldId, updates) => {
+                handleFieldChange(fieldId, updates);
+                setPreviewFields(prev => prev.map(f => f.id === fieldId ? { ...f, ...updates } : f));
+              }}
+              markDirtyAndSave={markDirtyAndSave}
+            />
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-base)' }}>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -7406,6 +7647,17 @@ export default function ServiceBuilderPanel({
             <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
             <span className="hidden md:inline">Fullscreen</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowFullscreenBuilder(true)}
+            className="h-8 px-2.5 sm:px-3 border rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-300 hover:bg-neutral-500/10 active:bg-neutral-500/20 font-sans hidden sm:flex shrink-0 bg-transparent"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+            title="Open builder in fullscreen mode"
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <span className="hidden md:inline">Fullscreen Builder</span>
+          </button>
           
           {selectedProgramId && (
             <button
@@ -7445,48 +7697,10 @@ export default function ServiceBuilderPanel({
       {activeTab === 'builder' && (
         <>
           {/* Main 3-column body */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden animate-none">
 
             {/* Left: palette (sm+) */}
-            <div className="hidden sm:flex w-48 border-r flex-col shrink-0 overflow-y-auto"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
-              <div className="px-3 pt-3 pb-2 sticky top-0 z-10" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-                <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>Field Types</p>
-                <div className="flex gap-1">
-                  {(['basic', 'advanced', 'layout', 'design'] as const).map(cat => (
-                    <button key={cat} type="button" onClick={() => setActivePaletteCategory(cat)}
-                      className="flex-1 text-[9px] font-bold py-1 rounded-lg cursor-pointer transition capitalize font-sans"
-                      style={{
-                        backgroundColor: activePaletteCategory === cat ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
-                        color: activePaletteCategory === cat ? '#fff' : 'var(--color-text-secondary)',
-                      }}
-                    >{cat}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="p-2 space-y-1 flex-1">
-                {filteredPaletteItems.map((item) => (
-                  <div key={item.type} draggable onDragStart={(e) => handlePaletteDragStart(e, item)}
-                    onClick={() => {
-                      if (item.type === 'form_design_block' && fields.some(f => f.type === 'form_design_block')) {
-                        return;
-                      }
-                      setFields(prev => [...prev, createField(item.type, item.defaultLabel)]);
-                      markDirtyAndSave();
-                    }}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-xl border cursor-pointer select-none transition hover:border-indigo-400 group"
-                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
-                    title={`${item.description} (Drag to form, or click to add)`}
-                  >
-                    <span className="shrink-0 text-indigo-400 group-hover:text-indigo-500 transition">{item.icon}</span>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold leading-none" style={{ color: 'var(--color-text-primary)' }}>{item.label}</p>
-                      <p className="text-[9px] mt-0.5 leading-none truncate" style={{ color: 'var(--color-text-secondary)' }}>{item.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {renderBuilderLeftPalette(true)}
 
             {/* Center: meta fields + canvas */}
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -7523,608 +7737,12 @@ export default function ServiceBuilderPanel({
                 </div>
               </div>
 
-              {/* Canvas */}
-              <div
-                className="flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-200"
-                onDragOver={handleCanvasDragOver}
-                onDragLeave={handleCanvasDragLeave}
-                onDrop={handleCanvasDrop}
-                onDragEnd={() => { setDragOverIndex(null); setIsDraggingOverCanvas(false); }}
-                style={{
-                  outline: isDraggingOverCanvas ? '2.5px dashed var(--color-accent)' : '2.5px dashed transparent',
-                  outlineOffset: '-4px',
-                  borderRadius: '12px',
-                  backgroundColor: isDraggingOverCanvas ? 'color-mix(in srgb, var(--color-accent) 5%, transparent)' : undefined,
-                  transition: 'outline 0.15s ease, background-color 0.15s ease',
-                }}
-              >
-                {/* Form style container */}
-                {false && (
-                <div className="border rounded-xl p-4 mb-4 space-y-3 shadow-xs" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
-                  <div className="flex items-center gap-1.5">
-                    <Palette className="w-4 h-4 text-indigo-500" />
-                    <h4 className="font-bold text-xs font-sans" style={{ color: 'var(--color-text-primary)' }}>Form Visual Design Styles</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3 col-span-1 md:col-span-2">
-                      <label className="text-[10px] font-black uppercase tracking-wider block" style={{ color: 'var(--color-text-secondary)' }}>
-                        Form Background
-                      </label>
-
-                      {/* Mode tabs */}
-                      <div className="flex gap-1 p-1 rounded-xl border" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
-                        {(['solid', 'gradient', 'image'] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => { setBgMode(mode); markDirtyAndSave(); }}
-                            className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer capitalize"
-                            style={bgMode === mode
-                              ? { background: 'var(--accent-gradient)', color: '#fff' }
-                              : { color: 'var(--color-text-secondary)', backgroundColor: 'transparent' }
-                            }
-                          >
-                            {mode === 'solid' ? '🎨 Solid' : mode === 'gradient' ? '🌈 Gradient' : '🖼 Image'}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Solid color */}
-                      {bgMode === 'solid' && (
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={bgSolidColor}
-                            onChange={(e) => { setBgSolidColor(e.target.value); markDirtyAndSave(); }}
-                            className="w-10 h-10 rounded-lg cursor-pointer border bg-transparent p-0.5"
-                            style={{ borderColor: 'var(--color-border)' }}
-                          />
-                          <input
-                            type="text"
-                            value={bgSolidColor}
-                            onChange={(e) => setBgSolidColor(e.target.value)}
-                            onBlur={() => markDirtyAndSave()}
-                            placeholder="#ffffff"
-                            className="flex-1 border rounded-lg px-2.5 py-1.5 outline-none text-xs font-mono"
-                            style={inputStyle}
-                          />
-                          {/* Quick color presets */}
-                          <div className="flex gap-1">
-                            {['#ffffff', '#f8fafc', '#f3f0ff', '#fff7ed', '#f0fdf4', '#0f172a'].map((c) => (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => { setBgSolidColor(c); markDirtyAndSave(); }}
-                                className="w-5 h-5 rounded-full border cursor-pointer transition hover:scale-110"
-                                style={{ backgroundColor: c, borderColor: bgSolidColor === c ? 'var(--color-accent)' : 'rgba(0,0,0,0.15)', borderWidth: bgSolidColor === c ? '2px' : '1px' }}
-                                title={c}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Gradient builder */}
-                      {bgMode === 'gradient' && (
-                        <div className="space-y-3 p-3 rounded-xl border" style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
-
-                          {/* Color stops */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>Color 1</label>
-                              <div className="flex items-center gap-2">
-                                <input type="color" value={bgGradientColor1} onChange={(e) => { setBgGradientColor1(e.target.value); markDirtyAndSave(); }}
-                                  className="w-8 h-8 rounded-lg cursor-pointer border bg-transparent p-0.5" style={{ borderColor: 'var(--color-border)' }} />
-                                <input type="text" value={bgGradientColor1} onChange={(e) => setBgGradientColor1(e.target.value)}
-                                  onBlur={() => markDirtyAndSave()}
-                                  className="flex-1 border rounded-lg px-2 py-1.5 outline-none text-xs font-mono" style={inputStyle} />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>Color 2</label>
-                              <div className="flex items-center gap-2">
-                                <input type="color" value={bgGradientColor2} onChange={(e) => { setBgGradientColor2(e.target.value); markDirtyAndSave(); }}
-                                  className="w-8 h-8 rounded-lg cursor-pointer border bg-transparent p-0.5" style={{ borderColor: 'var(--color-border)' }} />
-                                <input type="text" value={bgGradientColor2} onChange={(e) => setBgGradientColor2(e.target.value)}
-                                  onBlur={() => markDirtyAndSave()}
-                                  className="flex-1 border rounded-lg px-2 py-1.5 outline-none text-xs font-mono" style={inputStyle} />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Gradient preview bar */}
-                          <div
-                            className="h-6 rounded-lg border"
-                            style={{
-                              background: `linear-gradient(${bgGradientAngle}deg, ${bgGradientColor1}, ${bgGradientColor2})`,
-                              borderColor: 'var(--color-border)'
-                            }}
-                          />
-
-                          {/* Angle control */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Angle</label>
-                              <span className="text-[10px] font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>{bgGradientAngle}°</span>
-                            </div>
-
-                            {/* Draggable angle slider */}
-                            <input
-                              type="range"
-                              min={0}
-                              max={315}
-                              step={45}
-                              value={bgGradientAngle}
-                              onChange={(e) => { setBgGradientAngle(parseInt(e.target.value)); markDirtyAndSave(); }}
-                              className="w-full"
-                              style={{ accentColor: 'var(--color-accent)' }}
-                            />
-
-                            {/* Quick angle presets — the exact angles requested */}
-                            <div className="flex gap-1 flex-wrap">
-                              {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-                                <button
-                                  key={angle}
-                                  type="button"
-                                  onClick={() => { setBgGradientAngle(angle); markDirtyAndSave(); }}
-                                  className="px-2 py-0.5 rounded border text-[9px] font-bold font-mono transition cursor-pointer"
-                                  style={bgGradientAngle === angle
-                                    ? { background: 'var(--accent-gradient)', color: '#fff', borderColor: 'transparent' }
-                                    : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-secondary)' }
-                                  }
-                                >
-                                  {angle}°
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Gradient quick presets */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>Quick Presets</label>
-                            <div className="flex gap-2 flex-wrap">
-                              {[
-                                { label: 'Indigo Sky',  c1: '#6366f1', c2: '#38bdf8', angle: 135 },
-                                { label: 'Sunset',      c1: '#f59e0b', c2: '#ef4444', angle: 135 },
-                                { label: 'Forest',      c1: '#10b981', c2: '#3b82f6', angle: 135 },
-                                { label: 'Rose Gold',   c1: '#f43f5e', c2: '#fb923c', angle: 135 },
-                                { label: 'Midnight',    c1: '#1e1b4b', c2: '#312e81', angle: 135 },
-                                { label: 'Pearl',       c1: '#f8fafc', c2: '#e2e8f0', angle: 135 },
-                              ].map((preset) => (
-                                <button
-                                  key={preset.label}
-                                  type="button"
-                                  onClick={() => {
-                                    setBgGradientColor1(preset.c1);
-                                    setBgGradientColor2(preset.c2);
-                                    setBgGradientAngle(preset.angle);
-                                    markDirtyAndSave();
-                                  }}
-                                  className="px-2.5 py-1 rounded-full text-[9px] font-bold border cursor-pointer transition hover:scale-105"
-                                  style={{
-                                    background: `linear-gradient(135deg, ${preset.c1}, ${preset.c2})`,
-                                    color: '#fff',
-                                    borderColor: 'transparent',
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
-                                  }}
-                                >
-                                  {preset.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                        </div>
-                      )}
-
-                      {/* Image URL background */}
-                      {bgMode === 'image' && (
-                        <div className="space-y-4">
-                          {/* File upload zone for background */}
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>
-                              Background Image Upload
-                            </label>
-                            <div
-                              onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-accent)'; }}
-                              onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                e.currentTarget.style.borderColor = 'var(--color-border)';
-                                const file = e.dataTransfer.files?.[0];
-                                if (file && file.type.startsWith('image/')) handleFormBgUpload(file);
-                              }}
-                              onClick={() => document.getElementById('form-bg-file-input')?.click()}
-                              className="border border-dashed rounded-xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[var(--color-accent)] transition text-center"
-                              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)', minHeight: '80px' }}
-                            >
-                              <input
-                                id="form-bg-file-input"
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleFormBgUpload(file);
-                                }}
-                              />
-                              {bgUploading ? (
-                                <span className="text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>⚡ Uploading...</span>
-                              ) : bgImageUrl && (bgImageUrl.startsWith('http') || bgImageUrl.startsWith('/') || bgImageUrl.startsWith('data:')) ? (
-                                <>
-                                  <img src={bgImageUrl} alt="Background Preview" className="w-16 h-10 object-cover rounded border" style={{ borderColor: 'var(--color-border)' }} />
-                                  <span className="text-[9px] font-bold text-emerald-500">Image loaded · click to replace</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="w-5 h-5 text-indigo-500" />
-                                  <p className="text-[10px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Drop image here or click to browse</p>
-                                  <p className="text-[9px]" style={{ color: 'var(--color-text-secondary)' }}>Supports PNG, JPG, WEBP</p>
-                                </>
-                              )}
-                            </div>
-                            {bgUploadError && (
-                              <p className="text-[10px] text-red-500 font-bold animate-pulse">⚠️ {bgUploadError}</p>
-                            )}
-                          </div>
-
-                          {/* Image URL fallback */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>
-                              Or use External Image URL
-                            </label>
-                            <input
-                              type="text"
-                              value={bgImageUrl.startsWith('data:') ? '' : bgImageUrl}
-                              onChange={(e) => { setBgImageUrl(e.target.value); markDirtyAndSave(); }}
-                              onBlur={() => markDirtyAndSave()}
-                              placeholder="https://example.com/background.jpg"
-                              className="w-full border rounded-lg px-2.5 py-1.5 outline-none text-xs font-medium"
-                              style={inputStyle}
-                            />
-                            {/* Device upload button */}
-                            <div className="flex items-center gap-2 mt-2">
-                              <label
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold cursor-pointer transition hover:bg-neutral-50"
-                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-                              >
-                                <Upload className="w-3 h-3" />
-                                Upload from device
-                                <input
-                                  type="file"
-                                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleFormBgUpload(file);
-                                  }}
-                                />
-                              </label>
-                              <span className="text-[9px]" style={{ color: 'var(--color-text-secondary)' }}>PNG, JPG, WEBP, SVG</span>
-                            </div>
-                            <p className="text-[9px]" style={{ color: 'var(--color-text-secondary)' }}>
-                              Direct image URL. Useful if hosting externally.
-                            </p>
-                          </div>
-
-                          {/* Fit & Layout Options */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>
-                                Layout Style
-                              </label>
-                              <select
-                                value={bgSize}
-                                onChange={(e) => { setBgSize(e.target.value as any); markDirtyAndSave(); }}
-                                className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs font-semibold"
-                                style={inputStyle}
-                              >
-                                <option value="cover">🔄 Fill (Cover)</option>
-                                <option value="contain">🔍 Fit (Contain)</option>
-                                <option value="auto">📍 Natural (Auto)</option>
-                              </select>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold uppercase tracking-wide block" style={{ color: 'var(--color-text-secondary)' }}>
-                                Blend Mode
-                              </label>
-                              <select
-                                value={bgBlendMode}
-                                onChange={(e) => { setBgBlendMode(e.target.value); markDirtyAndSave(); }}
-                                className="w-full border rounded-lg px-2 py-1.5 outline-none text-xs font-semibold"
-                                style={inputStyle}
-                              >
-                                <option value="normal">Normal</option>
-                                <option value="multiply">Multiply</option>
-                                <option value="screen">Screen</option>
-                                <option value="overlay">Overlay</option>
-                                <option value="darken">Darken</option>
-                                <option value="lighten">Lighten</option>
-                                <option value="color-dodge">Color Dodge</option>
-                                <option value="color-burn">Color Burn</option>
-                                <option value="difference">Difference</option>
-                                <option value="luminosity">Luminosity</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Opacity slider */}
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
-                                Background Opacity
-                              </label>
-                              <span className="text-[10px] font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>{bgOpacity}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              value={bgOpacity}
-                              onChange={(e) => { setBgOpacity(Number(e.target.value)); markDirtyAndSave(); }}
-                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                              style={{ accentColor: 'var(--color-accent)', backgroundColor: 'var(--color-border)' }}
-                            />
-                          </div>
-
-                        </div>
-                      )}
-
-                      {/* Live background preview strip */}
-                      {computedFormBg && (
-                        <div
-                          className="h-8 rounded-xl border"
-                          style={{
-                            background: resolveFormBg(computedFormBg),
-                            borderColor: 'var(--color-border)'
-                          }}
-                        />
-                      )}
-
-                    </div>
-                    <div className="space-y-2 col-span-1 md:col-span-2">
-                      <label className="text-[10px] font-black uppercase tracking-wider block" style={{ color: 'var(--color-text-secondary)' }}>
-                        Form Logo — Upload or URL
-                      </label>
-
-                      {/* Position selector */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>Position:</span>
-                        {(['top-left', 'top-right', 'top-center'] as const).map((pos) => (
-                          <button
-                            key={pos}
-                            type="button"
-                            onClick={() => { setFormLogoPosition(pos); markDirtyAndSave(); }}
-                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer"
-                            style={formLogoPosition === pos
-                              ? { background: 'var(--accent-gradient)', color: '#fff', borderColor: 'transparent' }
-                              : { borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-secondary)' }
-                            }
-                          >
-                            {pos === 'top-left' ? '↖ Left' : pos === 'top-center' ? '↑ Center' : '↗ Right'}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Upload area + URL input split */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                        {/* Upload zone */}
-                        <div
-                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-accent)'; }}
-                          onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.style.borderColor = 'var(--color-border)';
-                            const file = e.dataTransfer.files?.[0];
-                            if (file && file.type.startsWith('image/')) handleFormLogoUpload(file);
-                          }}
-                          onClick={() => document.getElementById('form-logo-file-input')?.click()}
-                          className="border border-dashed rounded-xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[var(--color-accent)] transition text-center"
-                          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)', minHeight: '72px' }}
-                        >
-                          <input
-                            id="form-logo-file-input"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleFormLogoUpload(file);
-                            }}
-                          />
-                          {logoUploading ? (
-                            <span className="text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>⚡ Uploading...</span>
-                          ) : formLogoUrl && (formLogoUrl.startsWith('http') || formLogoUrl.startsWith('/')) ? (
-                            <>
-                              <img src={formLogoUrl} alt="Logo preview" className="w-10 h-10 rounded-full object-cover border" style={{ borderColor: 'var(--color-border)' }} />
-                              <span className="text-[9px] font-bold text-emerald-500">Logo set · click to replace</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 opacity-40" style={{ color: 'var(--color-text-secondary)' }} />
-                              <span className="text-[10px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>Drag & drop or click</span>
-                              <span className="text-[9px]" style={{ color: 'var(--color-text-secondary)' }}>PNG, JPG, SVG · max 500KB</span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* URL input fallback */}
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold block" style={{ color: 'var(--color-text-secondary)' }}>Or paste image URL</label>
-                          <input
-                            type="text"
-                            value={formLogoUrl}
-                            onChange={(e) => { setFormLogoUrl(e.target.value); markDirtyAndSave(); }}
-                            onBlur={() => markDirtyAndSave()}
-                            placeholder="https://example.com/logo.png"
-                            className="w-full border rounded-lg px-2.5 py-1.5 outline-none text-xs font-medium"
-                            style={inputStyle}
-                          />
-                          {formLogoUrl && (
-                            <button
-                              type="button"
-                              onClick={() => { setFormLogoUrl(''); markDirtyAndSave(); }}
-                              className="text-[9px] font-bold text-red-400 hover:text-red-600 transition cursor-pointer"
-                            >
-                              ✕ Remove logo
-                            </button>
-                          )}
-                        </div>
-
-                      </div>
-
-                      {logoUploadError && (
-                        <p className="text-[10px] text-red-500 font-bold animate-pulse">⚠️ {logoUploadError}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                )}
-
-
-
-                {/* Clean full-width editor interface with dynamic canvas sizing constraints */}
-                {/* COMMENT: We utilize width and minHeight as intent dimensions for precision, while max-width of 100% ensures proper responsiveness. */}
-                <div 
-                  className="w-full transition-all duration-300 font-sans mx-auto max-w-full rounded-2xl p-6 border"
-                  style={{
-                    width: formCanvas ? `${formCanvas.width}${formCanvas.unit}` : '100%',
-                    minHeight: formCanvas ? `${formCanvas.height}${formCanvas.unit}` : '500px',
-                    maxWidth: '100%',
-                    margin: '0 auto',
-                    borderColor: 'var(--color-border)',
-                    backgroundColor: 'var(--color-bg-card)',
-                  }}
-                >
-
-                  {fields.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-12 sm:py-16 text-center transition px-4"
-                      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
-                      <Plus className="w-8 h-8 mb-3 opacity-25 text-indigo-400" />
-                      <p className="text-sm font-bold font-sans" style={{ color: 'var(--color-text-primary)' }}>Drop fields here</p>
-                      <p className="text-xs mt-1 max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                        Drag from the left palette, or tap a basic field on mobile to customize your flow.
-                      </p>
-                      <div className="mt-5">
-                        <button
-                          type="button"
-                          onClick={() => setBrowseTemplatesOpen(true)}
-                          className="px-4 py-2 text-white text-xs font-extrabold rounded-xl hover:scale-105 transition flex items-center gap-1.5 cursor-pointer shadow-md"
-                          style={{ background: 'var(--accent-gradient)' }}
-                        >
-                          <Sparkles className="w-3.5 h-3.5" /> Start from Template
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <AnimatePresence>
-                      <div className="space-y-0">
-                        {/* Drop zone BEFORE first field */}
-                        <DropZoneLine
-                          index={0}
-                          isActive={dragOverIndex === 0}
-                          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(0); }}
-                          onDrop={(e) => handleFieldDrop(e, 0)}
-                        />
-                        {fields.map((field, index) => (
-                          <React.Fragment key={field.id}>
-                            <FieldEditor
-                              field={field}
-                              index={index}
-                              fields={fields}
-                              total={fields.length}
-                              onChange={handleFieldChange}
-                              onDelete={handleFieldDelete}
-                              onMoveUp={handleMoveUp}
-                              onMoveDown={handleMoveDown}
-                              isDragOver={false}
-                              onDragStart={handleFieldDragStart}
-                              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                              onDrop={(e) => { e.stopPropagation(); }}
-                              onDragEnd={handleFieldDragEnd}
-                              markDirtyAndSave={markDirtyAndSave}
-                              onDesignChange={handleDesignChange}
-                              designState={{
-                                bgMode,
-                                bgSolidColor,
-                                bgGradientColor1,
-                                bgGradientColor2,
-                                bgGradientAngle,
-                                bgImageUrl,
-                                formLogoUrl,
-                                formLogoPosition,
-                                computedFormBg,
-                                logoUploading,
-                                logoUploadError,
-                                handleFormLogoUpload,
-                                bgSolidOpacity,
-                                bgGradientOpacity,
-                                bgImageOverlayColor,
-                                bgImageOverlayOpacity,
-                                bgGlassEnabled,
-                                bgGlassBlur,
-                                bgGlassBorderRadius,
-                                bgGlassBorderColor,
-                                bgGlassBorderWidth,
-                                bgGlassColorStops,
-                                bgGlassAngle,
-                              }}
-                            />
-                            {/* Drop zone AFTER each field */}
-                            <DropZoneLine
-                              index={index + 1}
-                              isActive={dragOverIndex === index + 1}
-                              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverIndex(index + 1); }}
-                              onDrop={(e) => handleFieldDrop(e, index + 1)}
-                            />
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    </AnimatePresence>
-                  )}
-                </div>
-              </div>
+              {renderBuilderCanvas()}
             </div>
 
             {/* Right: desktop live preview (clamp) */}
             <AnimatePresence>
-              {showPreview && (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 340, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="border-l overflow-y-auto shrink-0 hidden sm:block"
-                  style={{ width: 'clamp(280px, 30%, 380px)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
-                >
-                  <div className="px-4 py-3.5 sticky top-0 z-10 border-b" style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider font-sans" style={{ color: 'var(--color-text-secondary)' }}>Interactive Live Preview</p>
-                    <p className="text-[9px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>Autosaved form design · Click 'Push to Preview' to sync changes</p>
-                  </div>
-                  <div className="p-4">
-                    <FormPreview
-                      fields={previewFields}
-                      serviceName={selectedProgramId ? name : formName}
-                      fees={fees}
-                      description={desc}
-                      formBg={formBg}
-                      formLogoUrl={formLogoUrl}
-                      formLogoPosition={formLogoPosition}
-                      formBgBlendMode={bgBlendMode}
-                      formBgSize={bgSize}
-                      formBgOpacity={bgOpacity}
-                      hideTitle={true}
-                      onChange={(fieldId, updates) => {
-                        handleFieldChange(fieldId, updates);
-                        setPreviewFields(prev => prev.map(f => f.id === fieldId ? { ...f, ...updates } : f));
-                      }}
-                      markDirtyAndSave={markDirtyAndSave}
-                    />
-                  </div>
-                </motion.div>
-              )}
+              {renderBuilderRightPreview(false)}
             </AnimatePresence>
           </div>
 
@@ -8596,6 +8214,77 @@ export default function ServiceBuilderPanel({
                   markDirtyAndSave={markDirtyAndSave}
                 />
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Fullscreen Builder Overlay ── */}
+      <AnimatePresence>
+        {showFullscreenBuilder && (
+          <motion.div
+            key="fullscreen-builder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[190] flex flex-col overflow-hidden"
+            style={{ backgroundColor: 'var(--color-bg-base)' }}
+          >
+            {/* Header top bar */}
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b shrink-0 gap-4"
+              style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
+            >
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse shrink-0" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black font-sans leading-none animate-none" style={{ color: 'var(--color-text-primary)' }}>
+                      {selectedProgramId ? name : (formName || 'Untitled Form')}
+                    </p>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-500/10 text-indigo-500 font-sans">
+                      Fullscreen Interactive Builder
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-sans mt-1 animate-none" style={{ color: 'var(--color-text-secondary)' }}>
+                    Visual layout edit mode · changes are saved in real-time
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons inside top bar */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFullscreenPreview(true)}
+                  className="px-3.5 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition cursor-pointer text-xs font-bold font-sans flex items-center gap-1.5 border border-[var(--color-border)] text-neutral-600 dark:text-neutral-300 shadow-sm"
+                >
+                  <Eye className="w-4 h-4 text-emerald-500" /> Preview Mode
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFullscreenBuilder(false)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-black text-white hover:scale-105 transition flex items-center gap-1.5 cursor-pointer shadow-md bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900"
+                >
+                  <Minimize2 className="w-4 h-4" /> Exit Fullscreen
+                </button>
+              </div>
+            </div>
+
+            {/* Main Fullscreen 3-column Workspace */}
+            <div className="flex flex-1 overflow-hidden animate-none">
+              {/* Left Column: Palette */}
+              {renderBuilderLeftPalette(false)}
+
+              {/* Center Column: Canvas */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-950 border-r border-[var(--color-border)]">
+                {renderBuilderCanvas()}
+              </div>
+
+              {/* Right Column: Properties / Preview */}
+              {renderBuilderRightPreview(true)}
             </div>
           </motion.div>
         )}
