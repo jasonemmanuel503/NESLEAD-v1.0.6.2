@@ -9351,6 +9351,578 @@ Do not invent any field types or property keys. The generated fields must be app
   });
 
 
+  // Standalone Form Embed Endpoints (Task I1)
+  
+  // GET /api/forms/:programId/schema — public read-only endpoint returning form schema and styles
+  app.get('/api/forms/:programId/schema', async (req, res) => {
+    const { programId } = req.params;
+    try {
+      const supabase = getSupabaseServer();
+      let programRow: any = null;
+      if (supabase) {
+        const { data } = await supabase.from('programs').select('*').eq('id', programId).maybeSingle();
+        programRow = data;
+      } else {
+        programRow = dbSql.prepare('SELECT * FROM programs WHERE id = ?').get(programId);
+      }
+
+      if (!programRow) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(404).json({ error: 'NOT_FOUND', message: 'Program not found.' });
+      }
+
+      // Check if published
+      if (programRow.published !== 1 && programRow.published !== true) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(403).json({ error: 'NOT_PUBLISHED', message: 'This program is not published yet.' });
+      }
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.json({
+        id: programRow.id,
+        name: programRow.name,
+        formSchema: programRow.form_schema ? JSON.parse(programRow.form_schema) : [],
+        formBg: programRow.form_bg || '',
+        formLogoUrl: programRow.form_logo_url || '',
+        formLogoPosition: programRow.form_logo_position || 'top-left',
+        formBgBlendMode: programRow.form_bg_blend_mode || 'normal',
+        formBgSize: programRow.form_bg_size || 'cover',
+        formBgOpacity: programRow.form_bg_opacity !== undefined ? programRow.form_bg_opacity : 100
+      });
+    } catch (err: any) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.status(500).json({ error: 'SCHEMA_FETCH_FAILED', message: err.message });
+    }
+  });
+
+  // GET /form-embed.js — returns a small JS snippet injecting an iframe pointing to /form-embed?programId=... with postMessage-based auto-resize
+  app.get('/form-embed.js', (req, res) => {
+    const { programId } = req.query as { programId?: string };
+    if (!programId) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.status(400).send('console.error("NesLead: Missing programId parameter on embed script");');
+    }
+    const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(`
+(function() {
+  'use strict';
+  var containerId = 'neslead-form-' + '${programId}';
+  var container = document.getElementById(containerId);
+  if (!container) {
+    container = document.createElement('div');
+    container.id = containerId;
+    document.body.appendChild(container);
+  }
+  container.style.position = 'relative';
+
+  var iframe = document.createElement('iframe');
+  iframe.src = '${appUrl}/form-embed?programId=${programId}';
+  iframe.style.cssText = 'width:100%;border:none;min-height:450px;background:transparent;overflow:hidden;transition:height 0.15s ease-out;';
+  iframe.title = 'NesLead Inline Form';
+  iframe.setAttribute('scrolling', 'no');
+  container.appendChild(iframe);
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'neslead-form-resize' && event.data.programId === '${programId}') {
+      iframe.style.height = event.data.height + 'px';
+    }
+  });
+})();
+    `.trim());
+  });
+
+  // GET /form-embed — serves a standalone responsive HTML page rendering the form
+  app.get('/form-embed', async (req, res) => {
+    const { programId } = req.query as { programId?: string };
+    if (!programId) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.status(400).send('<!-- NesLead: Missing programId parameter -->');
+    }
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Security-Policy', "frame-ancestors *");
+    res.removeHeader('X-Frame-Options');
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NesLead Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: transparent;
+    }
+    body::-webkit-scrollbar {
+      display: none;
+    }
+    body {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-slate-800 dark:text-slate-100 min-h-screen flex items-start justify-center">
+  <div id="form-container" class="w-full max-w-xl mx-auto p-4 sm:p-5 transition-all duration-300">
+    <div id="loading" class="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xs">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <p class="mt-4 text-xs text-slate-500">Retrieving form parameters...</p>
+    </div>
+    
+    <div id="error-box" class="hidden bg-red-50 text-red-800 p-5 rounded-2xl border border-red-200 mt-4 text-center">
+      <p class="font-semibold text-sm" id="error-message"></p>
+    </div>
+
+    <div id="success-box" class="hidden text-center py-10 px-6 bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-sm">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 mb-4 animate-bounce">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Thank you!</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">Your form submission has been successfully processed. We will get in touch with you shortly.</p>
+    </div>
+
+    <form id="neslead-form" class="hidden bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-sm p-5 sm:p-7 flex flex-col gap-4">
+      <div id="logo-container" class="hidden flex justify-center mb-1">
+        <img id="form-logo" src="" alt="Brand Logo" class="max-h-12 max-w-full object-contain">
+      </div>
+      
+      <div id="form-header" class="mb-1 hidden text-center border-b pb-3 border-slate-100 dark:border-slate-800">
+        <h2 id="form-title" class="text-base font-bold tracking-tight text-slate-900 dark:text-white"></h2>
+        <p id="form-subtitle" class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5"></p>
+      </div>
+
+      <div id="fields-area" class="flex flex-col gap-3.5"></div>
+
+      <button type="submit" id="submit-btn" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-xs transition duration-150 ease-in-out cursor-pointer text-center text-xs mt-2">
+        Submit Request
+      </button>
+
+      <div class="text-center text-[10px] text-slate-400 mt-1">
+        Secured by <span class="font-bold text-slate-500 dark:text-slate-300">NesLead</span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const programId = urlParams.get('programId');
+
+    if (!programId) {
+      showError('Please configure this embed wrapper with a valid program identifier.');
+    } else {
+      fetchSchema();
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').classList.add('hidden');
+      const errBox = document.getElementById('error-box');
+      errBox.classList.remove('hidden');
+      document.getElementById('error-message').textContent = msg;
+      sendResize();
+    }
+
+    function sendResize() {
+      setTimeout(() => {
+        const height = document.body.offsetHeight || document.documentElement.scrollHeight;
+        window.parent.postMessage({
+          type: 'neslead-form-resize',
+          programId: programId,
+          height: height + 20
+        }, '*');
+      }, 50);
+    }
+
+    const resizeObserver = new ResizeObserver(() => sendResize());
+    resizeObserver.observe(document.body);
+
+    let formFields = [];
+
+    async function fetchSchema() {
+      try {
+        const response = await fetch('/api/forms/' + programId + '/schema');
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error('This intake form draft is not yet published.');
+          } else if (response.status === 404) {
+            throw new Error('Form configuration could not be loaded.');
+          } else {
+            throw new Error('An error occurred while loading form settings.');
+          }
+        }
+        const data = await response.json();
+        renderForm(data);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function renderForm(data) {
+      document.getElementById('loading').classList.add('hidden');
+      const formEl = document.getElementById('neslead-form');
+      formEl.classList.remove('hidden');
+
+      if (data.formBg) {
+        document.body.style.backgroundImage = 'url(' + data.formBg + ')';
+        document.body.style.backgroundSize = data.formBgSize || 'cover';
+        document.body.style.backgroundBlendMode = data.formBgBlendMode || 'normal';
+        document.body.classList.remove('bg-transparent');
+        const opacity = (data.formBgOpacity !== undefined) ? data.formBgOpacity / 100 : 1;
+        document.body.style.backgroundColor = 'rgba(255, 255, 255, ' + (1 - opacity) + ')';
+      }
+
+      if (data.formBgBlendMode && data.formBgBlendMode !== 'normal') {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:-1;pointer-events:none;background-color:rgba(250,250,250,' + (1 - ((data.formBgOpacity ?? 100)/100)) + ')';
+        document.body.appendChild(overlay);
+      }
+
+      if (data.formLogoUrl) {
+        const logoCont = document.getElementById('logo-container');
+        const logoImg = document.getElementById('form-logo');
+        logoImg.src = data.formLogoUrl;
+        logoCont.classList.remove('hidden');
+        if (data.formLogoPosition === 'top-left') {
+          logoCont.style.justifyContent = 'flex-start';
+        } else if (data.formLogoPosition === 'top-right') {
+          logoCont.style.justifyContent = 'flex-end';
+        } else {
+          logoCont.style.justifyContent = 'center';
+        }
+      }
+
+      const headerEl = document.getElementById('form-header');
+      const titleEl = document.getElementById('form-title');
+      const subtitleEl = document.getElementById('form-subtitle');
+      if (data.name) {
+        headerEl.classList.remove('hidden');
+        titleEl.textContent = data.name;
+        subtitleEl.textContent = 'Please fill out this form to continue.';
+      }
+
+      const fieldsArea = document.getElementById('fields-area');
+      formFields = data.formSchema || [];
+
+      if (formFields.length === 0) {
+        fieldsArea.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">No custom fields have been added.</p>';
+        document.getElementById('submit-btn').classList.add('hidden');
+        sendResize();
+        return;
+      }
+
+      formFields.forEach(field => {
+        if (field.type === 'form_design_block') return;
+
+        const fieldWrapper = document.createElement('div');
+        fieldWrapper.className = 'flex flex-col gap-1.5 text-left';
+
+        // Dividers / Section titles
+        if (field.type === 'form_title') {
+          const h = document.createElement('h2');
+          h.className = 'font-bold text-slate-950 dark:text-white mt-1 text-center';
+          h.style.fontSize = (field.titleFontSize || 20) + 'px';
+          h.textContent = field.label || 'Intake Form';
+          fieldWrapper.appendChild(h);
+        } else if (field.type === 'section_header') {
+          const h = document.createElement('h3');
+          h.className = 'text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 border-b border-slate-100 dark:border-slate-800 pb-1';
+          h.textContent = field.label || '';
+          fieldWrapper.appendChild(h);
+          if (field.helpText) {
+            const p = document.createElement('p');
+            p.className = 'text-[10px] text-slate-400 dark:text-slate-500 mb-0.5';
+            p.textContent = field.helpText;
+            fieldWrapper.appendChild(p);
+          }
+        } else if (field.type === 'divider') {
+          const hr = document.createElement('hr');
+          hr.className = 'border-slate-100 dark:border-slate-800 my-1';
+          fieldWrapper.appendChild(hr);
+        } else if (field.type === 'rich_text') {
+          const div = document.createElement('div');
+          div.className = 'text-xs text-slate-600 dark:text-slate-400 leading-relaxed';
+          div.innerHTML = field.label || '';
+          fieldWrapper.appendChild(div);
+        } 
+        
+        // Interactive form inputs
+        else {
+          const label = document.createElement('label');
+          label.className = 'text-[11px] font-bold text-slate-705 dark:text-slate-300 flex items-center gap-1';
+          label.innerHTML = field.label || '';
+          if (field.required) {
+            label.innerHTML += ' <span class="text-rose-500">*</span>';
+          }
+          fieldWrapper.appendChild(label);
+
+          if (field.helpText && field.type !== 'terms_checkbox') {
+            const p = document.createElement('p');
+            p.className = 'text-[9.5px] text-slate-400 dark:text-slate-500 -mt-0.5 mb-0.5';
+            p.textContent = field.helpText;
+            fieldWrapper.appendChild(p);
+          }
+
+          if (field.type === 'long_text') {
+            const textarea = document.createElement('textarea');
+            textarea.name = field.id;
+            textarea.placeholder = field.placeholder || 'Your response...';
+            textarea.required = !!field.required;
+            textarea.rows = 3;
+            textarea.className = 'w-full px-3 py-2 border rounded-xl text-xs bg-slate-50/20 dark:bg-slate-800/10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 outline-none transition';
+            fieldWrapper.appendChild(textarea);
+          } else if (field.type === 'dropdown') {
+            const select = document.createElement('select');
+            select.name = field.id;
+            select.required = !!field.required;
+            select.className = 'w-full px-3 py-2 border rounded-xl text-xs bg-slate-50/20 dark:bg-slate-800/10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 outline-none transition';
+            
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = field.placeholder || '-- Make a Selection --';
+            select.appendChild(defaultOpt);
+
+            const options = Array.isArray(field.options) ? field.options : [];
+            options.forEach(opt => {
+              const optionText = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+              const optionVal = typeof opt === 'object' ? opt.value : opt;
+              const o = document.createElement('option');
+              o.value = optionVal;
+              o.textContent = optionText;
+              select.appendChild(o);
+            });
+            fieldWrapper.appendChild(select);
+          } else if (field.type === 'multi_checkbox') {
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.className = 'flex flex-col gap-1.5 p-1';
+            
+            const options = Array.isArray(field.options) ? field.options : [];
+            options.forEach((opt, idx) => {
+              const optionText = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+              const optionVal = typeof opt === 'object' ? opt.value : opt;
+              
+              const rowLabel = document.createElement('label');
+              rowLabel.className = 'flex items-center gap-2 text-xs text-slate-650 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 select-none';
+              
+              const cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.name = field.id;
+              cb.value = optionVal;
+              cb.className = 'rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-100';
+              
+              rowLabel.appendChild(cb);
+              rowLabel.appendChild(document.createTextNode(' ' + optionText));
+              checkboxContainer.appendChild(rowLabel);
+            });
+            fieldWrapper.appendChild(checkboxContainer);
+          } else if (field.type === 'radio') {
+            const radioContainer = document.createElement('div');
+            radioContainer.className = 'flex flex-col gap-1.5 p-1';
+            
+            const options = Array.isArray(field.options) ? field.options : [];
+            options.forEach((opt, idx) => {
+              const optionText = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+              const optionVal = typeof opt === 'object' ? opt.value : opt;
+              
+              const rowLabel = document.createElement('label');
+              rowLabel.className = 'flex items-center gap-2 text-xs text-slate-650 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 select-none';
+              
+              const rad = document.createElement('input');
+              rad.type = 'radio';
+              rad.name = field.id;
+              rad.value = optionVal;
+              rad.required = !!field.required;
+              rad.className = 'border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-100';
+              
+              rowLabel.appendChild(rad);
+              rowLabel.appendChild(document.createTextNode(' ' + optionText));
+              radioContainer.appendChild(rowLabel);
+            });
+            fieldWrapper.appendChild(radioContainer);
+          } else if (field.type === 'terms_checkbox') {
+            const container = document.createElement('div');
+            container.className = 'flex items-start gap-2.5 p-1';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = field.id;
+            checkbox.value = 'accepted';
+            checkbox.required = !!field.required;
+            checkbox.className = 'rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-100 mt-0.5';
+            
+            const labelEl = document.createElement('label');
+            labelEl.className = 'text-[11px] text-slate-500 dark:text-slate-400 leading-normal cursor-pointer select-none';
+            labelEl.innerHTML = field.helpText || 'I accept the listed terms & conditions.';
+            
+            container.appendChild(checkbox);
+            container.appendChild(labelEl);
+            fieldWrapper.appendChild(container);
+          } else if (field.type === 'scale') {
+            const container = document.createElement('div');
+            container.className = 'flex justify-between items-center gap-1.5 mt-1';
+            const minLabel = field.minLabel || '1';
+            const maxLabel = field.maxLabel || '5';
+
+            const minL = document.createElement('span');
+            minL.className = 'text-[9px] text-slate-450 max-w-[50px] leading-tight';
+            minL.textContent = minLabel;
+            container.appendChild(minL);
+
+            const scaleGroup = document.createElement('div');
+            scaleGroup.className = 'flex items-center gap-1.5 justify-center flex-1';
+
+            const scaleVal = field.scaleRange || 5;
+            for (let i = 1; i <= scaleVal; i++) {
+              const label = document.createElement('label');
+              label.className = 'flex flex-col items-center gap-1 cursor-pointer';
+
+              const rad = document.createElement('input');
+              rad.type = 'radio';
+              rad.name = field.id;
+              rad.value = String(i);
+              rad.required = !!field.required;
+              rad.className = 'sr-only peer';
+
+              const btn = document.createElement('span');
+              btn.className = 'w-7.5 h-7.5 rounded-full border border-slate-200 dark:border-slate-800 flex items-center justify-center text-[11px] font-bold peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-slate-100 dark:hover:bg-slate-850 transition-all select-none';
+              btn.textContent = String(i);
+
+              label.appendChild(rad);
+              label.appendChild(btn);
+              scaleGroup.appendChild(label);
+            }
+            container.appendChild(scaleGroup);
+
+            const maxL = document.createElement('span');
+            maxL.className = 'text-[9px] text-slate-450 max-w-[50px] text-right leading-tight';
+            maxL.textContent = maxLabel;
+            container.appendChild(maxL);
+
+            fieldWrapper.appendChild(container);
+          } else if (field.type === 'file_upload') {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'flex gap-2';
+
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.name = field.id;
+            textInput.placeholder = field.placeholder || 'Select local file or enter web file link...';
+            textInput.required = !!field.required;
+            textInput.className = 'flex-1 px-3 py-2 border rounded-xl text-xs bg-slate-50/20 dark:bg-slate-800/10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 outline-none transition';
+
+            const simulatedFileButton = document.createElement('label');
+            simulatedFileButton.className = 'px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-[10.5px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer shrink-0 text-slate-600 dark:text-slate-300 select-none';
+            simulatedFileButton.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Search...';
+
+            const realFile = document.createElement('input');
+            realFile.type = 'file';
+            realFile.className = 'hidden';
+            realFile.addEventListener('change', function(e) {
+              if (e.target.files && e.target.files[0]) {
+                textInput.value = e.target.files[0].name;
+              }
+            });
+
+            simulatedFileButton.appendChild(realFile);
+            rowDiv.appendChild(textInput);
+            rowDiv.appendChild(simulatedFileButton);
+            fieldWrapper.appendChild(rowDiv);
+          } else {
+            const input = document.createElement('input');
+            input.name = field.id;
+            input.type = field.type === 'phone' ? 'tel' : (field.type === 'number' ? 'number' : (field.type === 'password' ? 'password' : (field.type === 'date' ? 'date' : 'text')));
+            input.placeholder = field.placeholder || '';
+            input.required = !!field.required;
+            input.className = 'w-full px-3 py-2 border rounded-xl text-xs bg-slate-50/20 dark:bg-slate-800/10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 outline-none transition';
+            fieldWrapper.appendChild(input);
+          }
+        }
+
+        fieldsArea.appendChild(fieldWrapper);
+      });
+
+      sendResize();
+    }
+
+    document.getElementById('neslead-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+
+      const payload = {};
+      
+      formFields.forEach(field => {
+        if (field.type === 'form_design_block') return;
+
+        if (field.type === 'multi_checkbox') {
+          const checked = Array.from(document.querySelectorAll('input[name="' + field.id + '"]:checked')).map(el => el.value);
+          payload[field.id] = checked;
+        } else if (field.type === 'radio') {
+          const checked = document.querySelector('input[name="' + field.id + '"]:checked');
+          payload[field.id] = checked ? checked.value : '';
+        } else {
+          const el = document.getElementsByName(field.id)[0];
+          if (el) {
+            payload[field.id] = el.type === 'checkbox' ? (el.checked ? 'accepted' : '') : el.value;
+          }
+        }
+      });
+
+      try {
+        const response = await fetch('/api/forms/' + programId + '/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ data: payload })
+        });
+
+        if (!response.ok) {
+          throw new Error('Form submission failed. Please verify configurations.');
+        }
+
+        document.getElementById('neslead-form').classList.add('hidden');
+        document.getElementById('success-box').classList.remove('hidden');
+        sendResize();
+      } catch (err) {
+        alert(err.message || 'Submission failed. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+        sendResize();
+      }
+    });
+  </script>
+</body>
+</html>
+    `;
+    res.send(htmlContent.trim());
+  });
+
   // GET /api/superadmin/my-role — returns the current user's platform role
   app.get('/api/superadmin/my-role', requireAuth, async (req: any, res) => {
     const email = req.userEmail || req.tenant?.email;

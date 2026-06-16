@@ -5823,6 +5823,9 @@ export default function ServiceBuilderPanel({
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [copiedOptionA, setCopiedOptionA] = useState(false);
+  const [copiedOptionB, setCopiedOptionB] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<AutoSaveStatus>('idle');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -6678,6 +6681,19 @@ export default function ServiceBuilderPanel({
             <Maximize2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
             <span className="hidden md:inline">Fullscreen</span>
           </button>
+          
+          {selectedProgramId && (
+            <button
+              type="button"
+              onClick={() => setShowEmbedModal(true)}
+              className="h-8 px-2.5 sm:px-3 border rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-300 hover:bg-neutral-500/10 active:bg-neutral-500/20 font-sans shrink-0 bg-transparent"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+              title="Get standalone form embed code"
+            >
+              <Code className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span>Embed Form</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -7809,6 +7825,113 @@ export default function ServiceBuilderPanel({
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Standalone Form Embed Snippet */}
+      <AnimatePresence>
+        {showEmbedModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEmbedModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            />
+            
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="relative rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl overflow-hidden font-sans border"
+              style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-black leading-tight" style={{ color: 'var(--color-text-primary)' }}>Embed Standalone Form</h2>
+                <button type="button" onClick={() => setShowEmbedModal(false)} className="text-neutral-400 hover:text-neutral-600 transition cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-xs mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+                Integrate this beautiful intake form directly onto any external landing page, website builder, or custom platform.
+              </p>
+
+              <div className="space-y-4">
+                {/* Option A — iframe embed */}
+                <div className="border rounded-2xl p-4 transition-all" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold font-mono text-indigo-500">Option A — Interactive Iframe Embed</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const code = `<iframe src="${window.location.origin}/form-embed?programId=${selectedProgramId}" style="width:100%;border:none;min-height:600px;" title="${name || formName || 'Intake Form'}"></iframe>`;
+                        navigator.clipboard.writeText(code).then(() => {
+                          setCopiedOptionA(true);
+                          setTimeout(() => setCopiedOptionA(false), 2000);
+                        });
+                      }}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition flex items-center gap-1 bg-white dark:bg-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      style={{ borderColor: 'var(--color-border)', color: copiedOptionA ? '#10b981' : 'var(--color-text-primary)' }}
+                    >
+                      {copiedOptionA ? <><Check className="w-3 h-3 text-emerald-500" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Code</>}
+                    </button>
+                  </div>
+                  <pre className="text-[10px] font-mono p-3 rounded-xl overflow-x-auto leading-relaxed bg-neutral-900 border border-neutral-800 text-slate-300 whitespace-pre-wrap word-break-all">
+                    {`<iframe src="${window.location.origin}/form-embed?programId=${selectedProgramId}" style="width:100%;border:none;min-height:600px;" title="${name || formName || 'Intake Form'}"></iframe>`}
+                  </pre>
+                  <p className="text-[10px] mt-2 text-slate-500 font-medium">
+                    Perfect for fast, sandboxed integration on any website creator (Wix, Webflow, WordPress, custom code).
+                  </p>
+                </div>
+
+                {/* Option B — script embed (auto-resizing) */}
+                <div className="border rounded-2xl p-4 transition-all" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold font-mono text-indigo-500">Option B — Dynamic Script Embed (Recommended)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const code = `<div id="neslead-form-${selectedProgramId}"></div>\n<script src="${window.location.origin}/form-embed.js?programId=${selectedProgramId}"></script>`;
+                        navigator.clipboard.writeText(code).then(() => {
+                          setCopiedOptionB(true);
+                          setTimeout(() => setCopiedOptionB(false), 2000);
+                        });
+                      }}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition flex items-center gap-1 bg-white dark:bg-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      style={{ borderColor: 'var(--color-border)', color: copiedOptionB ? '#10b981' : 'var(--color-text-primary)' }}
+                    >
+                      {copiedOptionB ? <><Check className="w-3 h-3 text-emerald-500" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Code</>}
+                    </button>
+                  </div>
+                  <pre className="text-[10px] font-mono p-3 rounded-xl overflow-x-auto leading-relaxed bg-neutral-900 border border-neutral-800 text-slate-300 whitespace-pre-wrap word-break-all">
+                    {`<div id="neslead-form-${selectedProgramId}"></div>\n<script src="${window.location.origin}/form-embed.js?programId=${selectedProgramId}"></script>`}
+                  </pre>
+                  <p className="text-[10px] mt-2 text-slate-500 font-medium">
+                    Recommended. Automatically resizes the embedded form wrapper to fit your fields perfectly on all viewports.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-900/30">
+                <p className="text-[10.5px] font-medium text-indigo-900 dark:text-indigo-400 leading-relaxed text-center">
+                  💡 <strong>Note:</strong> This embed always reflects your latest saved form — no need to update the embed code when you edit fields.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end mt-5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEmbedModal(false)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 border transition cursor-pointer"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
