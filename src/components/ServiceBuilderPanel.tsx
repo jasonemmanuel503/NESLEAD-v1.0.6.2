@@ -6772,7 +6772,7 @@ export default function ServiceBuilderPanel({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const dragIndexRef = useRef<number | null>(null);
-  const [activePaletteCategory, setActivePaletteCategory] = useState<'basic' | 'advanced' | 'layout' | 'design'>('basic');
+  const [activePaletteCategory, setActivePaletteCategory] = useState<'basic' | 'advanced' | 'layout' | 'design' | null>('basic');
   const [paletteSearch, setPaletteSearch] = useState('');
   const [activeTab, setActiveTab ] = useState<'builder' | 'my_forms' | 'fonts'>('builder');
   const [expandedEmbedId, setExpandedEmbedId] = useState<string | null>(null);
@@ -7513,7 +7513,7 @@ export default function ServiceBuilderPanel({
                 <div key={group.id} className="mb-1">
                   <button
                     type="button"
-                    onClick={() => setActivePaletteCategory(group.id as any)}
+                    onClick={() => setActivePaletteCategory(isActive ? null : group.id)}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider cursor-pointer transition rounded-lg hover:bg-neutral-100/50 font-sans"
                     style={{
                       borderLeft: `3px solid ${group.color}`,
