@@ -5,11 +5,11 @@ import {
   Circle, Calendar, Phone, Mail, Hash, Tag, Minus, MousePointer,
   FileText, BarChart3, Wand2, Check, Copy, Code, RefreshCw, Palette,
   Lock, Upload, Maximize2, Minimize2, Loader2, Sparkles, Layout, Columns, LayoutGrid, Heading, TextCursor,
-  Facebook, Twitter, Instagram, Linkedin, Youtube, MessageSquare, Share2, MessageCircle, Image as ImageIcon, ArrowRight,
+  Facebook, Twitter, Instagram, Linkedin, Youtube, MessageSquare, Share2, MessageCircle, Image, Image as ImageIcon, ArrowRight,
   Square, SeparatorVertical,
   Clock, CalendarRange, MapPin, Pipette, PenTool, KeyRound, Calculator, Table,
   ListOrdered, Gauge, Globe, FileCheck, Layers, Repeat, Loader, Video, Shapes, Badge,
-  Smartphone, Tablet, Monitor, Move
+  Smartphone, Tablet, Monitor, Move, ImagePlus, Aperture, Award, PenLine, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { FormField, FormFieldType, Program, FormTemplate } from '../types';
@@ -4401,17 +4401,22 @@ function FileUploadPreview({ field, onFileChange }: { field: FormField; onFileCh
           onFileChange(field.id, f);
         }} />
       <div onClick={() => fileRef.current?.click()}
-        className="border-2 border-dashed rounded-xl px-4 py-5 text-center cursor-pointer transition hover:border-indigo-400 hover:bg-indigo-50/30"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
+        className="w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 py-6 px-4 text-center transition-all cursor-pointer hover:bg-opacity-80"
+        style={{
+          borderColor: 'color-mix(in srgb, var(--color-accent) 50%, transparent)',
+          backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+        }}>
         {file ? (
           <p className="text-xs font-bold flex items-center justify-center gap-2 font-sans" style={{ color: 'var(--color-accent)' }}>
             <FileText className="w-4 h-4 text-emerald-500" /> {file.name} ({(file.size / 1024).toFixed(1)} KB)
           </p>
         ) : (
           <>
-            <FileText className="w-6 h-6 mx-auto mb-1 opacity-40 text-neutral-400" />
-            <p className="text-xs font-bold font-sans" style={{ color: 'var(--color-text-secondary)' }}>Click to upload file</p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+            <Upload className="w-6 h-6 animate-pulse" style={{ color: 'var(--color-accent)', opacity: 0.7 }} />
+            <p className="text-[10px] font-bold font-sans" style={{ color: 'var(--color-text-secondary)' }}>
+              Upload files here · drag or click
+            </p>
+            <p className="text-[9px] opacity-70 font-sans" style={{ color: 'var(--color-text-secondary)' }}>
               {field.acceptedFileTypes || 'Any file type'} · Max {field.maxFileSizeMB || 10}MB
             </p>
           </>
@@ -5291,6 +5296,12 @@ function FormPreview({
                 <button type="button" onClick={clearPad} className="text-[10px] text-neutral-400 font-bold hover:text-red-500 transition">Clear</button>
               </label>
               <div className="relative border rounded-xl overflow-hidden bg-white" style={{ borderColor: 'var(--color-border)' }}>
+                {!values[field.id] && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-1 opacity-50">
+                    <PenLine className="w-5 h-5 text-neutral-400" />
+                    <p className="text-[10px] font-bold font-sans text-neutral-400">Signature pad · visitor will sign here</p>
+                  </div>
+                )}
                 <canvas
                   ref={canvasRef}
                   width={340}
@@ -5302,7 +5313,7 @@ function FormPreview({
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-[120px] touch-none cursor-crosshair bg-white"
+                  className="w-full h-[120px] touch-none cursor-crosshair bg-white relative z-10 bg-transparent"
                 />
               </div>
               {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
@@ -5748,7 +5759,18 @@ function FormPreview({
                 style={{ transform: `scale(${1 + (field.bannerParallaxSpeed || 0.2)})` }}
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-neutral-400">🖼 Wide Banner Image Overlay</div>
+              <div
+                className="absolute inset-0 w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 py-6 px-4 text-center transition-all cursor-pointer hover:bg-opacity-80"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--color-accent) 50%, transparent)',
+                  backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+                }}
+              >
+                <Image className="w-6 h-6 animate-pulse" style={{ color: 'var(--color-accent)', opacity: 0.7 }} />
+                <p className="text-[10px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>
+                  Upload banner image · 16:9 recommended
+                </p>
+              </div>
             )}
             {field.bannerOverlayText && (
               <div
@@ -5908,7 +5930,18 @@ function FormPreview({
                     className="w-full h-full object-cover animate-fade-in"
                   />
                 ) : (
-                  <div className="flex items-center justify-center text-center h-full text-[10px] text-neutral-400 p-2"><Shapes className="w-5 h-5 text-indigo-500" /></div>
+                  <div
+                    className="w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 p-4 text-center transition-all cursor-pointer hover:bg-opacity-80"
+                    style={{
+                      borderColor: 'color-mix(in srgb, var(--color-accent) 50%, transparent)',
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+                    }}
+                  >
+                    <Aperture className="w-5 h-5 animate-pulse" style={{ color: 'var(--color-accent)', opacity: 0.7 }} />
+                    <p className="text-[9px] font-bold leading-tight" style={{ color: 'var(--color-text-secondary)' }}>
+                      Upload framed image
+                    </p>
+                  </div>
                 )}
               </div>
               {field.label && <span className="text-[11px] font-bold text-neutral-500">{field.label}</span>}
@@ -5969,7 +6002,18 @@ function FormPreview({
                     className="w-full h-full object-contain p-1"
                   />
                 ) : (
-                  <Badge className="w-1/2 h-1/2 text-indigo-500 animate-pulse" style={{ color: field.logoMarkColor || 'var(--color-accent)' }} />
+                  <div
+                    className="w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 p-2 text-center transition-all cursor-pointer hover:bg-opacity-80"
+                    style={{
+                      borderColor: 'color-mix(in srgb, var(--color-accent) 50%, transparent)',
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+                    }}
+                  >
+                    <Award className="w-4 h-4" style={{ color: 'var(--color-accent)', opacity: 0.7 }} />
+                    <p className="text-[8px] font-bold leading-tight" style={{ color: 'var(--color-text-secondary)' }}>
+                      Upload logo mark
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -6025,8 +6069,17 @@ function FormPreview({
                     }}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-full text-xs font-sans text-neutral-400" style={{ color: 'var(--color-text-secondary)' }}>
-                    🖼 No image — paste a URL in the editor
+                  <div
+                    className="w-full h-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 py-6 px-4 text-center transition-all cursor-pointer hover:bg-opacity-80 animate-fade-in"
+                    style={{
+                      borderColor: 'color-mix(in srgb, var(--color-accent) 50%, transparent)',
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent) 5%, transparent)',
+                    }}
+                  >
+                    <ImagePlus className="w-6 h-6 animate-pulse" style={{ color: 'var(--color-accent)', opacity: 0.7 }} />
+                    <p className="text-[10px] font-bold" style={{ color: 'var(--color-text-secondary)' }}>
+                      Upload or paste image URL
+                    </p>
                   </div>
                 )}
               </div>
@@ -6720,6 +6773,7 @@ export default function ServiceBuilderPanel({
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const dragIndexRef = useRef<number | null>(null);
   const [activePaletteCategory, setActivePaletteCategory] = useState<'basic' | 'advanced' | 'layout' | 'design'>('basic');
+  const [paletteSearch, setPaletteSearch] = useState('');
   const [activeTab, setActiveTab ] = useState<'builder' | 'my_forms' | 'fonts'>('builder');
   const [expandedEmbedId, setExpandedEmbedId] = useState<string | null>(null);
   const [expandedFormCardId, setExpandedFormCardId] = useState<string | null>(null);
@@ -7381,7 +7435,22 @@ export default function ServiceBuilderPanel({
     borderColor: 'var(--color-border)',
   };
 
-  const filteredPaletteItems = PALETTE_ITEMS.filter(i => i.category === activePaletteCategory);
+  const PALETTE_GROUPS = useMemo(() => [
+    { id: 'basic',    label: 'Input Fields',        color: '#6366f1' },  // indigo
+    { id: 'advanced', label: 'Smart & Logic Fields', color: '#8b5cf6' },  // purple
+    { id: 'layout',   label: 'Layout & Structure',   color: '#f59e0b' },  // amber
+    { id: 'design',   label: 'Media & Visual',       color: '#10b981' },  // emerald
+  ] as const, []);
+
+  const filteredPaletteItems = useMemo(() => {
+    const base = paletteSearch.trim()
+      ? PALETTE_ITEMS.filter(i =>
+          i.label.toLowerCase().includes(paletteSearch.toLowerCase()) ||
+          i.description.toLowerCase().includes(paletteSearch.toLowerCase())
+        )
+      : PALETTE_ITEMS.filter(i => i.category === activePaletteCategory);
+    return base;
+  }, [paletteSearch, activePaletteCategory]);
 
   const renderBuilderLeftPalette = (hiddenOnMobile = true) => {
     return (
@@ -7389,39 +7458,129 @@ export default function ServiceBuilderPanel({
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
         <div className="px-3 pt-3 pb-2 sticky top-0 z-10 animate-none" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <p className="text-[10px] font-black uppercase tracking-wider mb-2 font-sans" style={{ color: 'var(--color-text-secondary)' }}>Field Types</p>
-          <div className="flex gap-1">
-            {(['basic', 'advanced', 'layout', 'design'] as const).map(cat => (
-              <button key={cat} type="button" onClick={() => setActivePaletteCategory(cat)}
-                className="flex-1 text-[9px] font-bold py-1 rounded-lg cursor-pointer transition capitalize font-sans"
-                style={{
-                  backgroundColor: activePaletteCategory === cat ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
-                  color: activePaletteCategory === cat ? '#fff' : 'var(--color-text-secondary)',
-                }}
-              >{cat}</button>
-            ))}
+          
+          {/* Hide category tabs when searching */}
+          {!paletteSearch && (
+            <div className="flex gap-1">
+              {(['basic', 'advanced', 'layout', 'design'] as const).map(cat => (
+                <button key={cat} type="button" onClick={() => setActivePaletteCategory(cat)}
+                  className="flex-1 text-[9px] font-bold py-1 rounded-lg cursor-pointer transition capitalize font-sans"
+                  style={{
+                    backgroundColor: activePaletteCategory === cat ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
+                    color: activePaletteCategory === cat ? '#fff' : 'var(--color-text-secondary)',
+                  }}
+                >{cat}</button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Palette search */}
+        <div className="px-3 pb-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-neutral-400" />
+            <input
+              type="text"
+              value={paletteSearch}
+              onChange={(e) => setPaletteSearch(e.target.value)}
+              placeholder="Search fields..."
+              className="w-full border rounded-lg pl-6 pr-2 py-1.5 text-[10px] outline-none transition font-sans"
+              style={{
+                borderColor: 'var(--color-border)',
+                backgroundColor: 'var(--color-bg-secondary)',
+                color: 'var(--color-text-primary)',
+              }}
+            />
+            {paletteSearch && (
+              <button
+                type="button"
+                onClick={() => setPaletteSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
+
         <div className="p-2 space-y-1 flex-1 font-sans">
-          {filteredPaletteItems.map((item) => (
-            <div key={item.type} draggable onDragStart={(e) => handlePaletteDragStart(e, item)}
-              onClick={() => {
-                if (item.type === 'form_design_block' && fields.some(f => f.type === 'form_design_block')) {
-                  return;
-                }
-                setFields(prev => [...prev, createField(item.type, item.defaultLabel)]);
-                markDirtyAndSave();
-              }}
-              className="flex items-center gap-2 px-2.5 py-2 rounded-xl border cursor-pointer select-none transition hover:border-indigo-400 group"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
-              title={`${item.description} (Drag to form, or click to add)`}
-            >
-              <span className="shrink-0 text-indigo-400 group-hover:text-indigo-500 transition">{item.icon}</span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold leading-none" style={{ color: 'var(--color-text-primary)' }}>{item.label}</p>
-                <p className="text-[9px] mt-0.5 leading-none truncate" style={{ color: 'var(--color-text-secondary)' }}>{item.description}</p>
-              </div>
+          {!paletteSearch ? (
+            // Grouped view
+            PALETTE_GROUPS.map(group => {
+              const items = PALETTE_ITEMS.filter(i => i.category === group.id);
+              const isActive = activePaletteCategory === group.id;
+              return (
+                <div key={group.id} className="mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setActivePaletteCategory(group.id as any)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider cursor-pointer transition rounded-lg hover:bg-neutral-100/50 font-sans"
+                    style={{
+                      borderLeft: `3px solid ${group.color}`,
+                      paddingLeft: '8px',
+                      color: isActive ? group.color : 'var(--color-text-secondary)',
+                    }}
+                  >
+                    {group.label}
+                    <span className="ml-auto text-[9px] opacity-60 font-sans">{items.length}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isActive ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isActive && (
+                    <div className="mt-1 space-y-1 pl-1">
+                      {items.map(item => (
+                        <div key={item.type} draggable onDragStart={(e) => handlePaletteDragStart(e, item)}
+                          onClick={() => {
+                            if (item.type === 'form_design_block' && fields.some(f => f.type === 'form_design_block')) {
+                              return;
+                            }
+                            setFields(prev => [...prev, createField(item.type, item.defaultLabel)]);
+                            markDirtyAndSave();
+                          }}
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl border cursor-pointer select-none transition hover:border-indigo-400 group"
+                          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
+                          title={`${item.description} (Drag to form, or click to add)`}
+                        >
+                          <span className="shrink-0 text-indigo-400 group-hover:text-indigo-500 transition">{item.icon}</span>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold leading-none font-sans" style={{ color: 'var(--color-text-primary)' }}>{item.label}</p>
+                            <p className="text-[9px] mt-0.5 leading-none truncate font-sans" style={{ color: 'var(--color-text-secondary)' }}>{item.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            // Flat search results
+            <div className="space-y-1">
+              {filteredPaletteItems.length === 0 ? (
+                <p className="text-[10px] text-center py-4 font-sans" style={{ color: 'var(--color-text-secondary)' }}>
+                  No fields match "{paletteSearch}"
+                </p>
+              ) : filteredPaletteItems.map(item => (
+                <div key={item.type} draggable onDragStart={(e) => handlePaletteDragStart(e, item)}
+                  onClick={() => {
+                    if (item.type === 'form_design_block' && fields.some(f => f.type === 'form_design_block')) {
+                      return;
+                    }
+                    setFields(prev => [...prev, createField(item.type, item.defaultLabel)]);
+                    markDirtyAndSave();
+                  }}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-xl border cursor-pointer select-none transition hover:border-indigo-400 group"
+                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
+                  title={`${item.description} (Drag to form, or click to add)`}
+                >
+                  <span className="shrink-0 text-indigo-400 group-hover:text-indigo-500 transition">{item.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold leading-none font-sans" style={{ color: 'var(--color-text-primary)' }}>{item.label}</p>
+                    <p className="text-[9px] mt-0.5 leading-none truncate font-sans" style={{ color: 'var(--color-text-secondary)' }}>{item.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
     );
