@@ -9708,11 +9708,20 @@ Do not invent any field types or property keys. The generated fields must be app
             const p = document.createElement('p');
             p.className = 'text-[9.5px] text-slate-400 dark:text-slate-500 -mt-0.5 mb-0.5';
             p.textContent = field.helpText;
+            if (field.helpTextColor) p.style.color = field.helpTextColor;
+            if (field.helpTextOpacity != null) p.style.opacity = String(field.helpTextOpacity / 100);
             fieldWrapper.appendChild(p);
+          }
+
+          if (field.placeholderColor || field.placeholderOpacity != null) {
+            const style = document.createElement('style');
+            style.textContent = '#input-' + field.id + '::placeholder { color: ' + (field.placeholderColor || 'inherit') + ' !important; opacity: ' + ((field.placeholderOpacity ?? 100) / 100) + ' !important; }';
+            fieldWrapper.appendChild(style);
           }
 
           if (field.type === 'long_text') {
             const textarea = document.createElement('textarea');
+            textarea.id = 'input-' + field.id;
             textarea.name = field.id;
             textarea.placeholder = field.placeholder || 'Your response...';
             textarea.required = !!field.required;
@@ -9852,6 +9861,7 @@ Do not invent any field types or property keys. The generated fields must be app
             rowDiv.className = 'flex gap-2';
 
             const textInput = document.createElement('input');
+            textInput.id = 'input-' + field.id;
             textInput.type = 'text';
             textInput.name = field.id;
             textInput.placeholder = field.placeholder || 'Select local file or enter web file link...';
@@ -9877,6 +9887,7 @@ Do not invent any field types or property keys. The generated fields must be app
             fieldWrapper.appendChild(rowDiv);
           } else {
             const input = document.createElement('input');
+            input.id = 'input-' + field.id;
             input.name = field.id;
             input.type = field.type === 'phone' ? 'tel' : (field.type === 'number' ? 'number' : (field.type === 'password' ? 'password' : (field.type === 'date' ? 'date' : 'text')));
             input.placeholder = field.placeholder || '';

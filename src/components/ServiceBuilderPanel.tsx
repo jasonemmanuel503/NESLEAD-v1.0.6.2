@@ -1544,11 +1544,36 @@ function FieldEditor({
               )}
 
               {hasPlaceholder && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Placeholder Text</label>
-                  <input type="text" value={field.placeholder || ''} onChange={(e) => onChange(field.id, { placeholder: e.target.value }, true)}
-                    onBlur={() => markDirtyAndSave()}
-                    placeholder="e.g. Enter your answer here..." className="w-full border rounded-lg px-2.5 py-1.5 outline-none" style={inputStyle} />
+                <div className="space-y-2 border p-3 rounded-xl bg-neutral-50/50 dark:bg-neutral-800/10" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Placeholder Text</label>
+                    <input type="text" value={field.placeholder || ''} onChange={(e) => onChange(field.id, { placeholder: e.target.value }, true)}
+                      onBlur={() => markDirtyAndSave()}
+                      placeholder="e.g. Enter your answer here..." className="w-full border rounded-lg px-2.5 py-1.5 outline-none" style={inputStyle} />
+                  </div>
+                  <div className="flex flex-wrap gap-4 items-center pt-2">
+                    {/* Placeholder Color */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Color:</span>
+                      <input type="color" value={field.placeholderColor || '#a3a3a3'}
+                        onChange={(e) => onChange(field.id, { placeholderColor: e.target.value })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="w-7 h-6 rounded border cursor-pointer p-0.5 bg-transparent"
+                        style={{ borderColor: 'var(--color-border)' }} />
+                      <button type="button" onClick={() => { onChange(field.id, { placeholderColor: undefined }); markDirtyAndSave(); }}
+                        className="text-[9px] text-neutral-400 hover:text-neutral-600 underline cursor-pointer">
+                        Reset
+                      </button>
+                    </div>
+                    {/* Placeholder Opacity */}
+                    <div className="flex-1 min-w-[120px] flex items-center gap-2">
+                      <span className="text-[10px] w-24 shrink-0" style={{ color: 'var(--color-text-secondary)' }}>Opacity: {field.placeholderOpacity ?? 100}%</span>
+                      <input type="range" min="0" max="100" value={field.placeholderOpacity ?? 100}
+                        onChange={(e) => onChange(field.id, { placeholderOpacity: parseInt(e.target.value, 10) })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="flex-1 h-1 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -4370,14 +4395,39 @@ function FieldEditor({
 
               {/* Section header subtitle */}
               {!['divider', 'vertical_divider', 'page_break', 'form_design_block'].includes(field.type) && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
-                    {field.type === 'section_header' ? 'Subtitle (shown below heading)' : 'Help Text (shown below field)'}
-                  </label>
-                  <input type="text" value={field.helpText || ''} onChange={(e) => onChange(field.id, { helpText: e.target.value }, true)}
-                    onBlur={() => markDirtyAndSave()}
-                    placeholder={field.type === 'section_header' ? 'e.g. Tell us about yourself' : "e.g. We will never share your info"}
-                    className="w-full border rounded-lg px-2.5 py-1.5 outline-none" style={inputStyle} />
+                <div className="space-y-2 border p-3 rounded-xl bg-neutral-50/50 dark:bg-neutral-800/10" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
+                      {field.type === 'section_header' ? 'Subtitle (shown below heading)' : 'Help Text (shown below field)'}
+                    </label>
+                    <input type="text" value={field.helpText || ''} onChange={(e) => onChange(field.id, { helpText: e.target.value }, true)}
+                      onBlur={() => markDirtyAndSave()}
+                      placeholder={field.type === 'section_header' ? 'e.g. Tell us about yourself' : "e.g. We will never share your info"}
+                      className="w-full border rounded-lg px-2.5 py-1.5 outline-none" style={inputStyle} />
+                  </div>
+                  <div className="flex flex-wrap gap-4 items-center pt-2">
+                    {/* Help Text Color */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Color:</span>
+                      <input type="color" value={field.helpTextColor || '#737373'}
+                        onChange={(e) => onChange(field.id, { helpTextColor: e.target.value })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="w-7 h-6 rounded border cursor-pointer p-0.5 bg-transparent"
+                        style={{ borderColor: 'var(--color-border)' }} />
+                      <button type="button" onClick={() => { onChange(field.id, { helpTextColor: undefined }); markDirtyAndSave(); }}
+                        className="text-[9px] text-neutral-400 hover:text-neutral-600 underline cursor-pointer">
+                        Reset
+                      </button>
+                    </div>
+                    {/* Help Text Opacity */}
+                    <div className="flex-1 min-w-[120px] flex items-center gap-2">
+                      <span className="text-[10px] w-24 shrink-0" style={{ color: 'var(--color-text-secondary)' }}>Opacity: {field.helpTextOpacity ?? 100}%</span>
+                      <input type="range" min="0" max="100" value={field.helpTextOpacity ?? 100}
+                        onChange={(e) => onChange(field.id, { helpTextOpacity: parseInt(e.target.value, 10) })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="flex-1 h-1 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -4744,6 +4794,11 @@ function FormPreview({
     const isAbsolute = field.positionMode === 'absolute';
     const isSelected = selectedFieldId === field.id;
 
+    const placeholderColor = field.placeholderColor || '#a3a3a3';
+    const placeholderOpacity = (field.placeholderOpacity ?? 100) / 100;
+    const helpTextColor = field.helpTextColor || 'var(--color-text-secondary)';
+    const helpTextOpacity = (field.helpTextOpacity ?? 100) / 100;
+
     return (
       <div
         key={field.id}
@@ -4756,6 +4811,20 @@ function FormPreview({
           }
         }}
       >
+        <style dangerouslySetInnerHTML={{ __html: `
+          #field-root-${field.id} input::placeholder,
+          #field-root-${field.id} textarea::placeholder,
+          .placeholder-scope-${field.id}::placeholder {
+            color: ${placeholderColor} !important;
+            opacity: ${placeholderOpacity} !important;
+          }
+          #field-root-${field.id} [class*="text-[10px]"],
+          #field-root-${field.id} [class*="text-[11px]"] {
+            color: ${helpTextColor} !important;
+            opacity: ${helpTextOpacity} !important;
+          }
+        ` }} />
+        <div id={`field-root-${field.id}`} className={`w-full ${isAbsolute ? '' : 'space-y-1.5'}`}>
         {isAbsolute && onChange && (
           <>
             {/* Guide borders */}
@@ -6272,6 +6341,7 @@ function FormPreview({
             {field.helpText && <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.helpText}</p>}
           </div>
         )}
+        </div>
       </div>
     );
   };

@@ -151,9 +151,13 @@ export interface FormField {
   type: FormFieldType;
   label: string;
   placeholder?: string;
+  placeholderColor?: string;
+  placeholderOpacity?: number; // 0-100 placeholder opacity
   required: boolean;
   options?: string[];   // for dropdown, multi_checkbox, radio
   helpText?: string;    // small description below the field
+  helpTextColor?: string;
+  helpTextOpacity?: number; // 0-100 help text opacity
   defaultValue?: string;
   maxLength?: number;   // for short_text and long_text
   acceptedFileTypes?: string; // for file_upload, e.g. '.pdf,.jpg'
