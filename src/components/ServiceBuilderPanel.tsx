@@ -6773,6 +6773,7 @@ export default function ServiceBuilderPanel({
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
   const dragIndexRef = useRef<number | null>(null);
   const [activePaletteCategory, setActivePaletteCategory] = useState<'basic' | 'advanced' | 'layout' | 'design' | null>('basic');
+  const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
   const [paletteSearch, setPaletteSearch] = useState('');
   const [activeTab, setActiveTab ] = useState<'builder' | 'my_forms' | 'fonts'>('builder');
   const [expandedEmbedId, setExpandedEmbedId] = useState<string | null>(null);
@@ -7514,11 +7515,16 @@ export default function ServiceBuilderPanel({
                   <button
                     type="button"
                     onClick={() => setActivePaletteCategory(isActive ? null : group.id)}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider cursor-pointer transition rounded-lg hover:bg-neutral-100/50 font-sans"
+                    onMouseEnter={() => setHoveredGroupId(group.id)}
+                    onMouseLeave={() => setHoveredGroupId(null)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider cursor-pointer rounded-lg font-sans transition-all duration-300"
                     style={{
                       borderLeft: `3px solid ${group.color}`,
                       paddingLeft: '8px',
-                      color: isActive ? group.color : 'var(--color-text-secondary)',
+                      color: isActive || hoveredGroupId === group.id ? group.color : 'var(--color-text-secondary)',
+                      backgroundColor: hoveredGroupId === group.id
+                        ? `color-mix(in srgb, ${group.color} 10%, transparent)`
+                        : 'transparent',
                     }}
                   >
                     {group.label}
