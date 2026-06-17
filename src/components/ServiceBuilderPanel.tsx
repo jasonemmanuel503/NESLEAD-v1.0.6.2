@@ -3259,6 +3259,80 @@ function FieldEditor({
                       className="w-full accent-indigo-600 font-semibold"
                     />
                   </div>
+
+                  {/* Position preset — 9-position grid */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--color-text-secondary)' }}>
+                      Position Preset
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        'top-left',    'top-center',    'top-right',
+                        'center-left', 'center',        'center-right',
+                        'bottom-left', 'bottom-center', 'bottom-right',
+                      ] as const).map(pos => (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => onChange(field.id, { logoMarkPosition: pos as any })}
+                          className="py-1.5 rounded-lg border text-[9px] font-bold capitalize transition cursor-pointer"
+                          style={{
+                            borderColor: field.logoMarkPosition === pos ? 'var(--color-accent)' : 'var(--color-border)',
+                            backgroundColor: field.logoMarkPosition === pos
+                              ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)'
+                              : 'transparent',
+                            color: field.logoMarkPosition === pos ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                          }}
+                        >
+                          {pos.replace(/-/g, ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* X / Y pixel offset */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider block mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                        X Offset (px)
+                      </label>
+                      <input
+                        type="number"
+                        value={field.logoMarkOffsetX ?? 0}
+                        onChange={(e) => onChange(field.id, { logoMarkOffsetX: Number(e.target.value) })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs outline-none font-semibold"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider block mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                        Y Offset (px)
+                      </label>
+                      <input
+                        type="number"
+                        value={field.logoMarkOffsetY ?? 0}
+                        onChange={(e) => onChange(field.id, { logoMarkOffsetY: Number(e.target.value) })}
+                        onBlur={() => markDirtyAndSave()}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs outline-none font-semibold"
+                        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Snap to 8px grid toggle */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`snap-grid-${field.id}`}
+                      checked={field.logoMarkSnapGrid ?? false}
+                      onChange={(e) => { onChange(field.id, { logoMarkSnapGrid: e.target.checked }); markDirtyAndSave(); }}
+                      className="rounded cursor-pointer"
+                    />
+                    <label htmlFor={`snap-grid-${field.id}`} className="text-[10px] font-bold cursor-pointer" style={{ color: 'var(--color-text-secondary)' }}>
+                      Snap to 8px grid
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -5845,20 +5919,47 @@ function FormPreview({
         {/* Premium Fields: logo_mark */}
         {field.type === 'logo_mark' && (() => {
           const finalLogoSrc = field.logoMarkUrl || field.logoMarkImageUrl;
+
+          // Build CSS positioning from preset + offsets
+          const snapOffset = (v: number) =>
+            field.logoMarkSnapGrid ? Math.round(v / 8) * 8 : v;
+          const offsetX = snapOffset(field.logoMarkOffsetX ?? 0);
+          const offsetY = snapOffset(field.logoMarkOffsetY ?? 0);
+
+          const presetStyles: Record<string, React.CSSProperties> = {
+            'top-left':      { top: `calc(0px + ${offsetY}px)`, left: `calc(0px + ${offsetX}px)` },
+            'top-center':    { top: `calc(0px + ${offsetY}px)`, left: '50%', transform: `translateX(calc(-50% + ${offsetX}px))` },
+            'top-right':     { top: `calc(0px + ${offsetY}px)`, right: `calc(0px - ${offsetX}px)` },
+            'center':        { top: '50%', left: '50%', transform: `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))` },
+            'center-left':   { top: '50%', left: `calc(0px + ${offsetX}px)`, transform: `translateY(calc(-50% + ${offsetY}px))` },
+            'center-right':  { top: '50%', right: `calc(0px - ${offsetX}px)`, transform: `translateY(calc(-50% + ${offsetY}px))` },
+            'bottom-left':   { bottom: `calc(0px - ${offsetY}px)`, left: `calc(0px + ${offsetX}px)` },
+            'bottom-center': { bottom: `calc(0px - ${offsetY}px)`, left: '50%', transform: `translateX(calc(-50% + ${offsetX}px))` },
+            'bottom-right':  { bottom: `calc(0px - ${offsetY}px)`, right: `calc(0px - ${offsetX}px)` },
+          };
+
+          const pos = field.logoMarkPosition || 'top-left';
+          const posStyle = presetStyles[pos] || presetStyles['top-left'];
+
+          const logoSize = field.logoMarkSize || field.logoMarkWidth || 64;
+
           return (
-            <div className="flex flex-col items-center justify-center p-3 font-sans space-y-2">
+            <div className="relative w-full" style={{ minHeight: `${logoSize + 16}px` }}>
               <div
                 style={{
-                  width: `${field.logoMarkSize || 64}px`,
-                  height: `${field.logoMarkSize || 64}px`,
+                  position: 'absolute',
+                  width: `${logoSize}px`,
+                  height: `${logoSize}px`,
+                  borderRadius: `${field.logoMarkBorderRadius || 12}px`,
+                  border: `2px solid ${field.logoMarkColor || 'var(--color-accent)'}`,
+                  overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: 'var(--color-bg-secondary)',
-                  borderRadius: `${field.logoMarkBorderRadius || 12}px`,
-                  border: `2px solid ${field.logoMarkColor || 'var(--color-accent)'}`,
+                  ...posStyle,
                 }}
-                className="shadow-sm overflow-hidden relative transition transform hover:rotate-6"
+                className="shadow-sm transition transform hover:rotate-6"
               >
                 {finalLogoSrc ? (
                   <img
@@ -5871,12 +5972,6 @@ function FormPreview({
                   <Badge className="w-1/2 h-1/2 text-indigo-500 animate-pulse" style={{ color: field.logoMarkColor || 'var(--color-accent)' }} />
                 )}
               </div>
-              {field.logoMarkHeadline && (
-                <span className="text-xs font-black tracking-tight" style={{ color: 'var(--color-text-primary)' }}>{field.logoMarkHeadline}</span>
-              )}
-              {field.logoMarkSubline && (
-                <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{field.logoMarkSubline}</span>
-              )}
             </div>
           );
         })()}
@@ -7894,8 +7989,16 @@ export default function ServiceBuilderPanel({
           </div>
 
           {/* Bottom action bar */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t shrink-0 flex-wrap gap-3"
-            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
+          <div
+            className="flex items-center justify-between px-4 sm:px-6 py-4 border-t shrink-0 flex-wrap gap-3"
+            style={{
+              borderColor: 'var(--color-border)',
+              backgroundColor: 'var(--color-bg-card)',
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 30,
+            }}
+          >
             <p className="text-[11px] font-sans text-neutral-500" style={{ color: 'var(--color-text-secondary)' }}>
               {fields.length > 0
                 ? `${fields.length} field${fields.length !== 1 ? 's' : ''} configured · updates autosave`
@@ -7910,15 +8013,19 @@ export default function ServiceBuilderPanel({
                     setPreviewPushed(true);
                     setTimeout(() => setPreviewPushed(false), 1500);
                   }}
-                  className="px-3 py-2 border rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition hover:bg-neutral-100"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}>
+                  className="px-4 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1.5 cursor-pointer transition hover:opacity-90 active:scale-95 shadow-md"
+                  style={{ background: 'var(--accent-gradient)' }}>
                   <Eye className="w-3.5 h-3.5" />
                   {previewPushed ? '✓ Preview Updated' : 'Push to Preview'}
                 </button>
               )}
               <button type="button" onClick={() => handleSaveAll(false)} disabled={!(selectedProgramId ? name : formName).trim() || isSaving}
-                className="px-4 py-2 border rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition hover:bg-neutral-100 disabled:opacity-40"
-                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}>
+                className="px-4 py-2 border rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition active:scale-95 disabled:opacity-40"
+                style={{
+                  borderColor: 'var(--color-accent)',
+                  color: 'var(--color-accent)',
+                  backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)',
+                }}>
                 <Save className="w-3.5 h-3.5" />
                 Save Draft
               </button>
