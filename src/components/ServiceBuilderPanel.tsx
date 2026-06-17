@@ -124,14 +124,7 @@ const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'repeating_section',    label: 'Repeating Section',    icon: <Repeat className="w-3.5 h-3.5" />,        description: 'Dynamic repeating group template',             defaultLabel: 'Add Entry',                           category: 'layout' },
   { type: 'progress_bar',         label: 'Progress Bar',         icon: <Loader className="w-3.5 h-3.5" />,        description: 'Display interactive multi-step tracker',       defaultLabel: 'Step Progress',                       category: 'layout' },
   // Design
-  {
-    type: 'form_design_block',
-    label: 'Form Design',
-    icon: <Palette className="w-3.5 h-3.5" />,
-    description: 'Background, logo & visual styles',
-    defaultLabel: 'Form Design',
-    category: 'design',
-  },
+  { type: 'form_design_block', label: 'Background Settings', icon: <Palette className="w-3.5 h-3.5" />, description: 'Canvas background, overlay & design', defaultLabel: 'Background & Design', category: 'design' },
   { type: 'image_canvas', label: 'Image Canvas', icon: <ImageIcon className="w-3.5 h-3.5" />, description: 'Responsive image block with resize handles', defaultLabel: 'Image Canvas', category: 'design' },
   { type: 'header_image_banner',  label: 'Header Banner',        icon: <ImageIcon className="w-3.5 h-3.5" />,     description: 'Visual image banner with header overlays',     defaultLabel: 'Header Banner',                       category: 'design' },
   { type: 'video_embed',          label: 'Video Embed',          icon: <Video className="w-3.5 h-3.5" />,         description: 'Responsive embedded YouTube/Vimeo player',     defaultLabel: 'Video',                               category: 'design' },
@@ -841,7 +834,7 @@ function FieldEditor({
           className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md font-mono"
           style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
         >
-          {field.type === 'form_design_block' ? '🎨 Design' : field.type.replace(/_/g, ' ')}
+          {field.type === 'form_design_block' ? '🎨 Background' : field.type.replace(/_/g, ' ')}
         </span>
         <input
           type="text"
@@ -7297,7 +7290,7 @@ export default function ServiceBuilderPanel({
 
   const renderBuilderLeftPalette = (hiddenOnMobile = true) => {
     return (
-      <div className={`${hiddenOnMobile ? 'hidden sm:flex' : 'flex'} w-48 border-r flex-col shrink-0 overflow-y-auto`}
+      <div className={`${hiddenOnMobile ? 'hidden sm:flex' : 'flex'} w-48 border-r flex-col shrink-0 overflow-y-auto sb-hide-scrollbar`}
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
         <div className="px-3 pt-3 pb-2 sticky top-0 z-10 animate-none" style={{ backgroundColor: 'var(--color-bg-card)' }}>
           <p className="text-[10px] font-black uppercase tracking-wider mb-2 font-sans" style={{ color: 'var(--color-text-secondary)' }}>Field Types</p>
@@ -7342,7 +7335,7 @@ export default function ServiceBuilderPanel({
   const renderBuilderCanvas = () => {
     return (
       <div
-        className="flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-200"
+        className="flex-1 overflow-y-auto sb-hide-scrollbar p-4 sm:p-6 transition-all duration-200"
         onDragOver={handleCanvasDragOver}
         onDragLeave={handleCanvasDragLeave}
         onDrop={handleCanvasDrop}
@@ -7513,7 +7506,7 @@ export default function ServiceBuilderPanel({
         animate={isAlwaysVisible ? undefined : { width: 340, opacity: 1 }}
         exit={isAlwaysVisible ? undefined : { width: 0, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className={`border-l overflow-y-auto shrink-0 hidden sm:flex flex-col`}
+        className={`border-l overflow-y-auto sb-hide-scrollbar shrink-0 hidden sm:flex flex-col`}
         style={{ width: isAlwaysVisible ? '340px' : 'clamp(280px, 30%, 380px)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-secondary)' }}
       >
         <div className="px-4 py-3.5 sticky top-0 z-10 border-b animate-none" style={{ backgroundColor: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
@@ -7975,7 +7968,7 @@ export default function ServiceBuilderPanel({
         if (!designBlock) return null; // brief render gap before useEffect fires
 
         return (
-          <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto p-4 sm:p-6 font-sans">
+          <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto sb-hide-scrollbar p-4 sm:p-6 font-sans">
             <div className="max-w-xl mx-auto w-full space-y-6">
 
               {/* ── Section 1: Font Families ─────────────────────── */}
@@ -8208,7 +8201,7 @@ export default function ServiceBuilderPanel({
       })()}
 
       {activeTab === 'my_forms' && (
-        <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto">
+        <div className="flex-grow flex flex-col min-h-0 bg-[var(--color-bg-base)] overflow-y-auto sb-hide-scrollbar">
           {(() => {
             const formsWithSchema = programs.filter(p => p.formSchema && p.formSchema.length > 0);
             return (
@@ -8364,7 +8357,7 @@ export default function ServiceBuilderPanel({
                 Close Preview
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+            <div className="flex-1 overflow-y-auto sb-hide-scrollbar p-4" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
               <FormPreview
                 fields={fields}
                 serviceName={selectedProgramId ? name : formName}
@@ -8450,15 +8443,15 @@ export default function ServiceBuilderPanel({
 
             {/* Scrollable form content — centered, dynamic device wrapper */}
             <div
-              className="flex-1 overflow-y-auto flex justify-center items-start py-10 px-4"
+              className="flex-1 overflow-y-auto preview-device-scroll flex justify-center items-start py-10 px-4"
               style={{ backgroundColor: 'var(--color-bg-secondary)' }}
             >
               <div
                 className={`w-full transition-all duration-300 font-sans ${
                   previewDevice === 'mobile'
-                    ? 'max-w-[375px] border-[12px] border-neutral-800 dark:border-neutral-700 rounded-[2.2rem] bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto h-[680px] max-h-[75vh] relative p-4 flex flex-col'
+                    ? 'max-w-[375px] border-[12px] border-neutral-800 dark:border-neutral-700 rounded-[2.2rem] bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto preview-device-scroll h-[680px] max-h-[75vh] relative p-4 flex flex-col'
                     : previewDevice === 'tablet'
-                    ? 'max-w-[768px] border-[8px] border-neutral-600 dark:border-neutral-500 rounded-[1.8rem] bg-white dark:bg-neutral-900 shadow-xl overflow-y-auto h-[880px] max-h-[85vh] relative p-6 flex flex-col'
+                    ? 'max-w-[768px] border-[8px] border-neutral-600 dark:border-neutral-500 rounded-[1.8rem] bg-white dark:bg-neutral-900 shadow-xl overflow-y-auto preview-device-scroll h-[880px] max-h-[85vh] relative p-6 flex flex-col'
                     : 'max-w-xl bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-8 border'
                 }`}
                 style={previewDevice === 'desktop' ? { borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' } : {}}
@@ -8921,7 +8914,7 @@ export default function ServiceBuilderPanel({
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto pr-1 space-y-3">
+              <div className="flex-grow overflow-y-auto sb-hide-scrollbar pr-1 space-y-3">
                 {loadingFormTemplates ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-2">
                     <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
@@ -9011,7 +9004,7 @@ export default function ServiceBuilderPanel({
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto pr-1 space-y-4">
+              <div className="flex-grow overflow-y-auto sb-hide-scrollbar pr-1 space-y-4">
                 {/* Form Name Input */}
                 <div className="text-left font-sans">
                   <label className="text-[11px] font-bold block mb-1 text-neutral-700 dark:text-neutral-300">
