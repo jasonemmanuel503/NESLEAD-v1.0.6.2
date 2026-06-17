@@ -7794,7 +7794,7 @@ export default function ServiceBuilderPanel({
         </div>
         <div className="p-4 flex flex-col items-center">
           <div
-            className={`w-full transition-all duration-300 ${
+            className={`w-full transition-all duration-300 form-canvas-scope ${
               previewDevice === 'mobile'
                 ? 'max-w-[375px] border-4 border-neutral-800 dark:border-neutral-700 rounded-xl p-2 bg-white dark:bg-neutral-900 shadow-lg'
                 : previewDevice === 'tablet'
@@ -8079,10 +8079,25 @@ export default function ServiceBuilderPanel({
       <div className="flex border-b shrink-0 px-4 sm:px-6 overflow-x-auto scrollbar-none"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}>
         {([
-          { id: 'builder',  label: '✏️ Builder' },
+          {
+            id: 'builder',
+            label: (
+              <span className="flex items-center gap-1.5">
+                ✏️ Builder
+                {fields.length > 0 && (
+                  <span
+                    className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--color-accent)', color: '#fff' }}
+                  >
+                    {fields.length}
+                  </span>
+                )}
+              </span>
+            )
+          },
           { id: 'fonts',    label: '🔤 Fonts' },
           { id: 'my_forms', label: '📋 My Forms' },
-        ] as const).map(tab => (
+        ] as { id: 'builder' | 'fonts' | 'my_forms'; label: React.ReactNode }[]).map(tab => (
           <button key={tab.id} type="button"
             onClick={() => setActiveTab(tab.id)}
             className="px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer -mb-px font-sans whitespace-nowrap"
@@ -8713,7 +8728,7 @@ export default function ServiceBuilderPanel({
               style={{ backgroundColor: 'var(--color-bg-secondary)' }}
             >
               <div
-                className={`w-full transition-all duration-300 font-sans ${
+                className={`w-full transition-all duration-300 font-sans form-canvas-scope ${
                   previewDevice === 'mobile'
                     ? 'max-w-[375px] border-[12px] border-neutral-800 dark:border-neutral-700 rounded-[2.2rem] bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto preview-device-scroll h-[680px] max-h-[75vh] relative p-4 flex flex-col'
                     : previewDevice === 'tablet'
